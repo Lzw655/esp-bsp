@@ -1,0 +1,10 @@
+description: BSP Display rotation example
+dependencies:
+  idf: ">=5"
+  esp_lcd_panel_io_9bits_spi:
+    version: "*"
+    override_path: "../../../components/lcd/esp_lcd_panel_io_9bits_spi"
+  esp_io_expander_tca9554:
+    version: "^1"
+    public: true
+
