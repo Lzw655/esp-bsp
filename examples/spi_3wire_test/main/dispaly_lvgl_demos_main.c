@@ -11,7 +11,7 @@
 #include "esp_lcd_panel_io_interface.h"
 
 #include "esp_io_expander_tca9554.h"
-#include "esp_lcd_panel_io_9bits_spi.h"
+#include "esp_lcd_panel_io_3wire_spi.h"
 
 static char *TAG = "app_main";
 
@@ -31,7 +31,7 @@ void app_main(void)
     esp_io_expander_handle_t io_expander = NULL;
     ESP_ERROR_CHECK(esp_io_expander_new_i2c_tca9554(1, ESP_IO_EXPANDER_I2C_TCA9554_ADDRESS_000, &io_expander));
 
-    esp_lcd_panel_io_9bits_spi_config_t config = {
+    spi_line_config_t spi_line = {
         .cs_io_type = IO_TYPE_EXPANDER,
         .cs_gpio_num = IO_EXPANDER_PIN_NUM_1,
         .scl_io_type = IO_TYPE_EXPANDER,
@@ -39,11 +39,15 @@ void app_main(void)
         .sda_io_type = IO_TYPE_EXPANDER,
         .sda_gpio_num = IO_EXPANDER_PIN_NUM_3,
         .io_expander = io_expander,
-        .expect_clk_speed = PANEL_IO_9BITS_SPI_CLK_MAX,
+    };
+    esp_lcd_panel_io_3wire_spi_config_t config = {
+        .line_config = spi_line,
+        .expect_clk_speed = PANEL_IO_3WIRE_SPI_CLK_MAX,
         .spi_mode = 0,
-        .lcd_cmd_bytes = 4,
-        .lcd_param_bytes = 4,
+        .lcd_cmd_bytes = 1,
+        .lcd_param_bytes = 1,
         .flags = {
+            .use_dc_bit = 1,
             .dc_zero_on_data = 0,
             .lsb_first = 0,
             .cs_high_active = 0,
@@ -51,7 +55,7 @@ void app_main(void)
         },
     };
     esp_lcd_panel_io_handle_t io = NULL;
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_9bits_spi(&config, &io));
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_3wire_spi(&config, &io));
 
     esp_io_expander_print_state(io_expander);
 

@@ -5,5 +5,5 @@
 cmake_minimum_required(VERSION 3.5)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 add_compile_options("-Wno-attributes") # For LVGL code
-set(EXTRA_COMPONENT_DIRS ../../components/lcd/esp_lcd_panel_io_9bits_spi)
+set(EXTRA_COMPONENT_DIRS ../../components/lcd)
 project(display_lvgl_demos)
