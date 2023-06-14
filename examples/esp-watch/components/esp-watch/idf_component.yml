@@ -1,0 +1,11 @@
+version: "1.0.0"
+
+targets:
+  - esp32s3
+
+dependencies:
+  idf: ">=5.0"
+
+  lvgl/lvgl:
+    version: "^8"
+    public: true
