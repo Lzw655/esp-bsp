@@ -1,0 +1,23 @@
+dependencies:
+  idf:
+    version: '>=5.3.0'
+
+  esp_codec_dev:
+    public: true
+    version: ^1
+
+  lvgl/lvgl:
+    version: "^8"
+    public: true
+
+  esp_lcd_touch_gt911:
+    version: "^1"
+    public: true
+
+  chmorgan/esp-audio-player: "1.0.*"
+  chmorgan/esp-file-iterator: "1.0.0"
+
+description: Board Support Package for ESP32-P4-Function-ev-board
+targets:
+- esp32p4
+version: 0.0.1
