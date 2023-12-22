@@ -1,0 +1,5 @@
+## IDF Component Manager Manifest File
+dependencies:
+  esp32_p4_function_ev_board:
+    version: "*"
+    override_path: "../../../esp32_p4_function_ev_board"

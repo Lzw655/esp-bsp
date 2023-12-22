@@ -1,0 +1,127 @@
+menu "Board Support Package"
+
+    config BSP_ERROR_CHECK
+        bool "Enable error check in BSP"
+        default y
+        help
+            Error check assert the application before returning the error code.
+
+    menu "I2C"
+        config BSP_I2C_NUM
+            int "I2C peripheral index"
+            default 1
+            range 0 1
+            help
+                ESP32S3 has two I2C peripherals, pick the one you want to use.
+
+        config BSP_I2C_FAST_MODE
+            bool "Enable I2C fast mode"
+            default y
+            help
+                I2C has two speed modes: normal (100kHz) and fast (400kHz).
+
+        config BSP_I2C_CLK_SPEED_HZ
+            int
+            default 400000 if BSP_I2C_FAST_MODE
+            default 100000
+    endmenu
+
+    menu "SPIFFS - Virtual File System"
+        config BSP_SPIFFS_FORMAT_ON_MOUNT_FAIL
+            bool "Format SPIFFS if mounting fails"
+            default n
+            help
+                Format SPIFFS if it fails to mount the filesystem.
+
+        config BSP_SPIFFS_MOUNT_POINT
+            string "SPIFFS mount point"
+            default "/spiffs"
+            help
+                Mount point of SPIFFS in the Virtual File System.
+
+        config BSP_SPIFFS_PARTITION_LABEL
+            string "Partition label of SPIFFS"
+            default "storage"
+            help
+                Partition label which stores SPIFFS.
+
+        config BSP_SPIFFS_MAX_FILES
+            int "Max files supported for SPIFFS VFS"
+            default 5
+            help
+                Supported max files for SPIFFS in the Virtual File System.
+    endmenu
+
+    menu "SD card - Virtual File System"
+        config BSP_SD_FORMAT_ON_MOUNT_FAIL
+            bool "Format SD card if mounting fails"
+            default n
+            help
+                The SDMMC host will format (FAT) the SD card if it fails to mount the filesystem.
+
+        config BSP_SD_MOUNT_POINT
+            string "SD card mount point"
+            default "/sdcard"
+            help
+                Mount point of the SD card in the Virtual File System
+    endmenu
+
+    menu "Display"
+        config BSP_DISPLAY_LVGL_TASK_PRIORITY
+            int "LVGL task priority"
+            default 2
+            help
+                The Board Support Package will create a task that will periodically handle LVGL operation in lv_timer_handler().
+
+        config BSP_DISPLAY_LVGL_TASK_CORE_ID
+            int "LVGL task pinned core ID"
+            default -1
+            range -1 1
+            help
+                Core to pin LVGL task. -1 means no pinning.
+
+        config BSP_DISPLAY_LVGL_TASK_DELAY
+            int "LVGL task minimum delay time (ms)"
+            default 10
+            range 1 100
+            help
+                Minimum delay time for LVGL task. It should be larger if the task watchdog is triggered frequently.
+
+        config BSP_DISPLAY_LVGL_TASK_STACK_SIZE_KB
+            int "LVGL task stack size (KB)"
+            default 4
+            help
+                Size(KB) of LVGL task stack.
+
+        config BSP_DISPLAY_LVGL_TICK
+            int "LVGL tick period"
+            default 5
+            range 1 100
+            help
+                Period of LVGL tick timer.
+
+        choice BSP_DISPLAY_LVGL_BUF_CAPS
+            depends on !BSP_DISPLAY_LVGL_AVOID_TEAR
+            prompt "Select LVGL buffer memory capability"
+            default BSP_DISPLAY_LVGL_INTERNAL
+            config BSP_DISPLAY_LVGL_PSRAM
+                bool "PSRAM memory"
+            config BSP_DISPLAY_LVGL_INTERNAL
+                bool "Internal memory"
+        endchoice
+
+        config BSP_DISPLAY_LVGL_BUF_HEIGHT
+            depends on !BSP_DISPLAY_LVGL_AVOID_TEAR
+            int "LVGL buffer height"
+            default 100
+            help
+                Height of LVGL buffer. The width of the buffer is the same as that of the LCD.
+    endmenu
+
+    config BSP_I2S_NUM
+        int "I2S peripheral index"
+        default 1
+        range 0 1
+        help
+            ESP32S3 has two I2S peripherals, pick the one you want to use.
+endmenu
