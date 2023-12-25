@@ -1417,9 +1417,7 @@ esp_err_t bsp_lcd_start(void)
     GDMA.chen0.val = ((GDMA.chen0.val) | 0x202);
     esp_rom_delay_us(10);
 
-    mipi_dsi_bridge_start();
-
-    ESP_LOGI(TAG, "[MAIN] MIPI transfer start.\n");
+    ESP_LOGI(TAG, "[MIPI-HAL] LCD start\n");
 
     return ESP_OK;
 }

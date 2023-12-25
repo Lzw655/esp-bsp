@@ -6,39 +6,63 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include "mipi_csi.h"
+
+#include "hp_sys_clkrst_reg.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
 
-/* *************************************************************** */
-/* Global Function Declaration                                     */
-/* *************************************************************** */
+#include "mipi_csi.h"
 
-// Initialization of MIPI-CSI, including Bridge, Host-Controller and D-PHY.
-int  mipi_csi_initialization (void);
+static const char *TAG = "mipi_csi";
 
-// Initialization of MIPI-CSI Host-Controller and D-PHY.
-int  mipi_csi_host_phy_initialization (void);
+static void mipi_csi_clock_init(void);
+static void mipi_csi_host_phy_initialization (void);
 
-// Initialization of MIPI-CSI Bridge.
-int  mipi_csi_bridge_initialization   (void);
+/* --------------------------------------------------------
+ * @brief  : Initialization of MIPI-CSI, including Bridge,
+ *           Host-Controller and D-PHY.
+ **/
+void mipi_csi_init (void)
+{
+    mipi_csi_clock_init();
 
-// Write register "CSI2_HOST_PHY_TEST_CTRL0".
-void mipi_csi_update_phy_test_ctrl0 (uint32_t phy_testclk,
-                                     uint32_t phy_testclr );
+    mipi_csi_host_phy_initialization();
 
-// Write register "CSI2_HOST_PHY_TEST_CTRL1".
-void mipi_csi_update_phy_test_ctrl1 (uint32_t phy_testen,
-                                     uint32_t phy_testdin );
+    ESP_LOGI(TAG, "[MIPI-HAL] MIPI CSI initialization done.\n");
+}
 
-/* *************************************************************** */
-/* Global Variable Declaration                                     */
-/* *************************************************************** */
+/* --------------------------------------------------------
+ * @brief  : Initialization of MIPI-CSI Bridge.
+ **/
+void mipi_csi_bridge_init (void)
+{
+    // Set Frame lines.
+    MIPI_CSI_BRIDGE.frame_cfg.hadr_num = MIPI_CSI_IMAGE_HSIZE;
+    MIPI_CSI_BRIDGE.frame_cfg.vadr_num = MIPI_CSI_IMAGE_VSIZE;
 
-/* *************************************************************** */
-/* Implementation                                                  */
-/* *************************************************************** */
+    MIPI_CSI_BRIDGE.buf_flow_ctl.csi_buf_afull_thrd = 960;
+    MIPI_CSI_BRIDGE.dma_req_cfg.dma_burst_len = 256;
+
+    // MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e = 0x1;
+    ESP_LOGI(TAG, "has_hsync_e: 0x%x\n", MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e);
+
+    // MIPI_CSI_BRIDGE.data_type_cfg.data_type_min = 0x20;
+    ESP_LOGI(TAG, "csi data_type_min: 0x%x, data_type_max: 0x%x, dma_req_interval: %d\n", MIPI_CSI_BRIDGE.data_type_cfg.data_type_min, MIPI_CSI_BRIDGE.data_type_cfg.data_type_max, MIPI_CSI_BRIDGE.dma_req_interval.dma_req_interval);
+    MIPI_CSI_BRIDGE.data_type_cfg.data_type_min = 0x12;
+
+#if TEST_CSI_COLOR_MODE == MIPI_CSI_YUV422_MODE
+    MIPI_CSI_BRIDGE.endian_mode.byte_endian_order = 1;
+#else
+    MIPI_CSI_BRIDGE.endian_mode.byte_endian_order = 0;
+#endif
+
+    // Enable CSI Bridge.
+    MIPI_CSI_BRIDGE.en.val = 0x1;
+
+    ESP_LOGI(TAG, "[MIPI-HAL] MIPI CSI Bridge initialization done.\n");
+}
 
 /* --------------------------------------------------------
  * @brief  : Write register "CSI2_HOST_PHY_TEST_CTRL0".
@@ -46,8 +70,8 @@ void mipi_csi_update_phy_test_ctrl1 (uint32_t phy_testen,
  *           <phy_testclr>
  * @ret    : void
  **/
-void mipi_csi_update_phy_test_ctrl0 (uint32_t phy_testclk,
-                                     uint32_t phy_testclr )
+static void mipi_csi_update_phy_test_ctrl0 (uint32_t phy_testclk,
+        uint32_t phy_testclr )
 {
     MIPI_CSI_HOST.phy_test_ctrl0.val = ( 0x00000000 | ((phy_testclk << 1) & 0x00000002) | ((phy_testclr << 0) & 0x00000001) );
 }
@@ -58,8 +82,8 @@ void mipi_csi_update_phy_test_ctrl0 (uint32_t phy_testclk,
  *           <phy_testdin>
  * @ret    : void
  **/
-void mipi_csi_update_phy_test_ctrl1 (uint32_t phy_testen,
-                                     uint32_t phy_testdin )
+static void mipi_csi_update_phy_test_ctrl1 (uint32_t phy_testen,
+        uint32_t phy_testdin )
 {
     MIPI_CSI_HOST.phy_test_ctrl1.val = ( 0x00000000 | ((phy_testen << 16) & 0x00010000) | ((phy_testdin << 0) & 0x000000ff) );
 }
@@ -74,14 +98,8 @@ static void mipi_csi_dphy_write_control (uint32_t testcode, uint32_t testwrite)
     MIPI_CSI_HOST.phy_test_ctrl0.val  = 0x00000000           ;
 }
 
-/* --------------------------------------------------------
- * @brief  : Initialization of MIPI-CSI Host-Controller and D-PHY.
- * @params : void
- * @ret    : int
- **/
-int mipi_csi_host_phy_initialization (void)
+static void mipi_csi_host_phy_initialization (void)
 {
-#if !TEST_CSI_FPGA
     // ---------------------------------------
     // 1. Release D-PHY test codes from reset.
     // ---------------------------------------
@@ -151,7 +169,6 @@ int mipi_csi_host_phy_initialization (void)
     // 2. Configure D-PHY frequency range (for 1Gbits).
     // ---------------------------------------
     mipi_csi_dphy_write_control (0x44, hs_freq << 1);
-#endif
 
     MIPI_CSI_HOST.phy_shutdownz.phy_shutdownz = 1;
     MIPI_CSI_HOST.dphy_rstz.dphy_rstz = 1;
@@ -173,68 +190,21 @@ int mipi_csi_host_phy_initialization (void)
     // ---------------------------------------
     // 5. Done.
     // ---------------------------------------
-    printf("[MIPI-HAL] MIPI CSI Host Controller & D-PHY initialization done.\n");
-    return 0;
+    ESP_LOGI(TAG, "[MIPI-HAL] MIPI CSI Host Controller & D-PHY initialization done.\n");
 }
 
-/* --------------------------------------------------------
- * @brief  : Initialization of MIPI-CSI Bridge.
- * @params : void
- * @ret    : int
- **/
-int mipi_csi_bridge_initialization (void)
+static void mipi_csi_clock_init(void)
 {
-    uint32_t rtn;
+    REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_CSI_DPHY_CLK_SRC_SEL, 1);
+    REG_CLR_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_CSI_DPHY_CFG_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_CSI_DPHY_CFG_CLK_EN);
 
-    // Set Frame lines.
-    MIPI_CSI_BRIDGE.frame_cfg.hadr_num = MIPI_CSI_IMAGE_HSIZE;
-    MIPI_CSI_BRIDGE.frame_cfg.vadr_num = MIPI_CSI_IMAGE_VSIZE;
-
-    MIPI_CSI_BRIDGE.buf_flow_ctl.csi_buf_afull_thrd = 960;
-    MIPI_CSI_BRIDGE.dma_req_cfg.dma_burst_len = 256;
-
-    // MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e = 0x1;
-    printf("has_hsync_e: 0x%x\n", MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e);
-
-    // MIPI_CSI_BRIDGE.data_type_cfg.data_type_min = 0x20;
-    printf("csi data_type_min: 0x%x, data_type_max: 0x%x, dma_req_interval: %d\n", MIPI_CSI_BRIDGE.data_type_cfg.data_type_min, MIPI_CSI_BRIDGE.data_type_cfg.data_type_max, MIPI_CSI_BRIDGE.dma_req_interval.dma_req_interval);
-    MIPI_CSI_BRIDGE.data_type_cfg.data_type_min = 0x12;
-
-#if TEST_CSI_COLOR_MODE == MIPI_CSI_YUV422_MODE
-    MIPI_CSI_BRIDGE.endian_mode.byte_endian_order = 1;
-#else
-    MIPI_CSI_BRIDGE.endian_mode.byte_endian_order = 0;
-#endif
-
-    // Enable CSI Bridge.
-    MIPI_CSI_BRIDGE.en.val = 0x1;
-
-    printf("[MIPI-HAL] MIPI CSI Bridge initialization done.\n");
-    return 0;
-}
-
-/* --------------------------------------------------------
- * @brief  : Initialization of MIPI-CSI, including Bridge,
- *           Host-Controller and D-PHY.
- * @params : void
- * @ret    : int
- **/
-int mipi_csi_initialization (void)
-{
-    int stat;
-
-    stat = mipi_csi_host_phy_initialization();
-    if (stat) {
-        printf("[MIPI-HAL] Error - Initialize MIPI CSI Host&PHY failed.\n");
-        return 1;
-    }
-
-    // stat = mipi_csi_bridge_initialization();
-    // if(stat) {
-    //     printf("[MIPI-HAL] Error - Initialize MIPI CSI Bridge failed.\n");
-    //     return 1;
-    // }
-
-    printf("[MIPI-HAL] MIPI CSI initialization done.\n");
-    return 0;
+    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_CSI_HOST_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_CSI_HOST_SYS_CLK_EN);
+    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_CSI_BRG_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_CSI_BRG_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_CSI_HOST);
+    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_CSI_HOST);
+    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_CSI_BRG);
+    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_CSI_BRG);
 }

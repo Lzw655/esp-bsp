@@ -21,7 +21,7 @@
 #define GDMA_BUFFER_MASTER      (1)
 
 static uint32_t buf_dma_addr[3];
-static uint32_t buf_cache_addr[3]; 
+static uint32_t buf_cache_addr[3];
 
 volatile uint32_t buf_wr_ptr = 1; // 0,1,2  Updated in ISR only when GDMA finished receive  one frame from MIPI-CSI, and wants to receive  next one.
 volatile uint32_t buf_rd_ptr = 0; // 0,1,2  Updated in ISR only when GDMA finished transmit one frame into MIPI-DSI, and wants to transmit next one.
@@ -62,15 +62,15 @@ void IRAM_ATTR gpio_probe(int io_num, int level)
 {
     if (io_num >= 32) {
         if (level == 1) {
-            GPIO.out1_w1ts.val = (0x1 << (io_num - 32)); 
+            GPIO.out1_w1ts.val = (0x1 << (io_num - 32));
         } else {
-            GPIO.out1_w1tc.val = (0x1 << (io_num - 32)); 
+            GPIO.out1_w1tc.val = (0x1 << (io_num - 32));
         }
     } else {
         if (level == 1) {
-            GPIO.out_w1ts = (0x1 << io_num); 
+            GPIO.out_w1ts = (0x1 << io_num);
         } else {
-            GPIO.out_w1tc = (0x1 << io_num); 
+            GPIO.out_w1tc = (0x1 << io_num);
         }
     }
 }
@@ -242,7 +242,7 @@ static int mipi_start(void)
 
     mipi_csi_bridge_initialization();
 
-    // chip 上 Sensor需要 mipi 初始化完成后再初始化 
+    // chip 上 Sensor需要 mipi 初始化完成后再初始化
     // while (sccb_prob() < 2);
 #if TEST_CSI_OV5640
     ov5640_init();
@@ -366,7 +366,7 @@ int mipi_init(uint32_t dma_addr, uint32_t cache_addr)
 
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_DIV_NUM, (240000000 / MIPI_DPI_CLOCK_RATE) - 1);
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_SRC_SEL, 1);
-    REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_EN); 
+    REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_EN);
 
     REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_GDMA_SYS_CLK_EN);
     REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_GDMA_SYS_CLK_EN);
@@ -451,7 +451,7 @@ int mipi_init(uint32_t dma_addr, uint32_t cache_addr)
 
     mipi_start();
 
-#if 0 
+#if 0
     while (dsi_frame_cnt < 1000) {
         printf("csi_frame_cnt: %d, dsi_frame_cnt: %d\n", csi_frame_cnt, dsi_frame_cnt);
         printf("csi_bridge_raw: 0x%x, buf_depth,: %d, overrun: %d, discard: %d\n", MIPI_CSI_BRIDGE.int_raw.val, MIPI_CSI_BRIDGE.buf_flow_ctl.csi_buf_depth, MIPI_CSI_BRIDGE.int_raw.csi_buf_overrun, MIPI_CSI_BRIDGE.int_raw.discard);
@@ -461,10 +461,10 @@ int mipi_init(uint32_t dma_addr, uint32_t cache_addr)
         printf("MIPI_CSI_HOST.phy_rx[0x%x]: 0x%x\n", &MIPI_CSI_HOST.phy_rx.val, MIPI_CSI_HOST.phy_rx.val);
         printf("MIPI_CSI_HOST.int_st_main[0x%x]: 0x%x\n", &MIPI_CSI_HOST.int_st_main.val, MIPI_CSI_HOST.int_st_main.val);
         printf("MIPI_CSI_HOST.int_st_phy[0x%x]: 0x%x\n", &MIPI_CSI_HOST.int_st_phy.val, MIPI_CSI_HOST.int_st_phy.val);
-        printf("MIPI_CSI_HOST.int_st_phy_fatal[0x%x]: 0x%x\n", &MIPI_CSI_HOST.int_st_phy_fatal.val, MIPI_CSI_HOST.int_st_phy_fatal.val);  
-        printf("MIPI_CSI_HOST.int_st_bndry_frame_fatal[0x%x]: 0x%x\n", &MIPI_CSI_HOST.int_st_bndry_frame_fatal.val, MIPI_CSI_HOST.int_st_bndry_frame_fatal.val);  
-        printf("MIPI_DSI_HOST.int_st0[0x%x]: 0x%x\n", &MIPI_DSI_HOST.int_st0.val, MIPI_DSI_HOST.int_st0.val); 
-        printf("MIPI_DSI_HOST.int_st1[0x%x]: 0x%x\n", &MIPI_DSI_HOST.int_st1.val, MIPI_DSI_HOST.int_st1.val); 
+        printf("MIPI_CSI_HOST.int_st_phy_fatal[0x%x]: 0x%x\n", &MIPI_CSI_HOST.int_st_phy_fatal.val, MIPI_CSI_HOST.int_st_phy_fatal.val);
+        printf("MIPI_CSI_HOST.int_st_bndry_frame_fatal[0x%x]: 0x%x\n", &MIPI_CSI_HOST.int_st_bndry_frame_fatal.val, MIPI_CSI_HOST.int_st_bndry_frame_fatal.val);
+        printf("MIPI_DSI_HOST.int_st0[0x%x]: 0x%x\n", &MIPI_DSI_HOST.int_st0.val, MIPI_DSI_HOST.int_st0.val);
+        printf("MIPI_DSI_HOST.int_st1[0x%x]: 0x%x\n", &MIPI_DSI_HOST.int_st1.val, MIPI_DSI_HOST.int_st1.val);
         delay_us(2000);
     }
 #endif

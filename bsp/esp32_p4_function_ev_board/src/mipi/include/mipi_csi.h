@@ -11,6 +11,10 @@
 #include "mipi_csi_bridge_struct.h"
 #include "isp_struct.h"
 
+#define MIPI_CSI_IMAGE_HSIZE           800
+// #define MIPI_CSI_IMAGE_VSIZE           1280 / 2
+#define MIPI_CSI_IMAGE_VSIZE           0
+
 #define MIPI_CSI_RGB888_MODE (0)
 #define MIPI_CSI_RGB666_MODE (1)
 #define MIPI_CSI_RGB565_MODE (2)
@@ -20,8 +24,8 @@
 #define MIPI_CSI_RAW10_MODE  (10)
 #define MIPI_CSI_RAW12_MODE  (12)
 
-#define TEST_CSI_FPGA        (0)
 #define TEST_CSI_COLOR_MODE  (MIPI_CSI_RAW8_MODE)
+
 #if (TEST_CSI_COLOR_MODE==MIPI_CSI_RGB888_MODE)
 #define TEST_CSI_COLOR_WIDTH (24)
 #elif (TEST_CSI_COLOR_MODE==MIPI_CSI_RGB666_MODE)
@@ -63,16 +67,11 @@
 #define MIPI_CSI_LINE_RATE (MIPI_IDI_CLOCK_RATE * 4) //line_rate = pclk * 4
 #endif
 
-#define MIPI_CSI_IMAGE_HSIZE           800
-// #define MIPI_CSI_IMAGE_VSIZE           1280 / 2
-#define MIPI_CSI_IMAGE_VSIZE           0
-
-int mipi_csi_bridge_initialization (void) ;
-
 /*
  * @brief  : Initialization of MIPI-DSI, including Bridge,
  *           Host-Controller and D-PHY.
  * @params : void
- * @ret    : int
  **/
-int mipi_csi_initialization(void);
+void mipi_csi_init (void);
+
+void mipi_csi_bridge_init (void);

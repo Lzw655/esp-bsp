@@ -878,6 +878,15 @@ esp_err_t mipi_dsi_host_phy_init(void)
     return ESP_OK;
 }
 
+esp_err_t mipi_dsi_phy_host_init(void)
+{
+    mipi_dsi_clock_init();
+
+    mipi_dsi_host_phy_init();
+
+    return ESP_OK;
+}
+
 esp_err_t mipi_dsi_bridge_init(void)
 {
     uint32_t rtn;
@@ -935,6 +944,8 @@ esp_err_t mipi_dsi_bridge_start(void)
     // Enable MIPI DPI_EN.
     MIPI_DSI_BRIDGE.dpi_misc_config.dpi_en = 0x1;
     MIPI_DSI_BRIDGE.dpi_config_update.val  = 0x1; // Remember to do update.
+
+    ESP_LOGI(TAG, "[MIPI-HAL] MIPI DSI Bridge start.\n");
 
     return ESP_OK;
 }
