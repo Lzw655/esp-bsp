@@ -7,9 +7,8 @@
 #include "esp_check.h"
 #include "esp_log.h"
 
-#include "interrupt_core0_reg.h"
 #include "mipi_csi_host_struct.h"
-#include "gdma_struct.h"
+#include "dw_gdma.h"
 #include "mipi_csi.h"
 #include "mipi_dsi.h"
 
@@ -26,37 +25,38 @@ static const char *TAG = "bsp_camera";
 
 esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
 {
+    ESP_RETURN_ON_FALSE(config != NULL, ESP_ERR_INVALID_ARG, TAG, "Invalid configuration");
+    ESP_RETURN_ON_FALSE((config->buffer_ptr != NULL) && (config->buffer_size_ptr != NULL), ESP_ERR_INVALID_ARG, TAG,
+                        "Invalid buffer pointer");
+    ESP_RETURN_ON_FALSE((*config->buffer_size_ptr == 0) || (*config->buffer_ptr != NULL), ESP_ERR_INVALID_ARG, TAG,
+                        "Invalid buffer configuration");
+
+    uint32_t csi_block_bytes = 0;
+    void *dma_buffer = *config->buffer_ptr;
+    bool external_dma_buffer = (*config->buffer_ptr != NULL);
+
+    if (TEST_CSI_COLOR_MODE >= MIPI_CSI_RAW8_MODE) {
+        csi_block_bytes = config->hor_res * config->ver_res * TEST_DSI_COLOR_WIDTH / 8;
+    } else {
+        csi_block_bytes = config->hor_res * config->ver_res * TEST_CSI_COLOR_WIDTH / 8;
+    }
+
+    if (!external_dma_buffer) {
+        dma_buffer = heap_caps_aligned_alloc(TEST_CSI_TR_WIDTH, csi_block_bytes, MALLOC_CAP_SPIRAM);
+        ESP_RETURN_ON_FALSE(dma_buffer != NULL, ESP_ERR_NO_MEM, TAG, "Allocate DMA buffer_ptr failed");
+
+        ESP_LOGI(TAG, "Allocate DMA buffer at %p, size: %d", dma_buffer, csi_block_bytes);
+    } else {
+        ESP_RETURN_ON_FALSE(*config->buffer_size_ptr >= csi_block_bytes, ESP_ERR_INVALID_ARG, TAG,
+                            "External DMA buffer_ptr is too small");
+    }
+
     mipi_csi_init();
 
     vTaskDelay(pdMS_TO_TICKS(1));
 
-    return ESP_OK;
-}
-
-static esp_err_t bsp_camera_init(uint16_t hor_res, uint16_t ver_res, void **buffer)
-{
-    uint32_t csi_block_bytes = 0;
-    uint32_t csi_block_ts = 0;
-    void *dma_buffer = NULL;
-    bool dma_buffer_allocated = false;
-
-    if (TEST_CSI_COLOR_MODE >= MIPI_CSI_RAW8_MODE) {
-        csi_block_bytes = hor_res * ver_res * TEST_DSI_COLOR_WIDTH / 8;
-    } else {
-        csi_block_bytes = hor_res * ver_res * TEST_CSI_COLOR_WIDTH / 8;
-    }
-    csi_block_ts = csi_block_bytes * 8 / TEST_CSI_TR_WIDTH;
-
-    if (*buffer == NULL) {
-        dma_buffer = heap_caps_aligned_alloc(TEST_CSI_TR_WIDTH, csi_block_bytes, MALLOC_CAP_SPIRAM);
-        if (dma_buffer == NULL) {
-            ESP_LOGE(TAG, "Failed to allocate DMA buffer");
-            return ESP_ERR_NO_MEM;
-        }
-        dma_buffer_allocated = true;
-    } else {
-        dma_buffer = *buffer;
-    }
+    ESP_RETURN_ON_ERROR(dw_gdma_mipi_csi_init(dma_buffer, csi_block_bytes, TEST_CSI_TR_WIDTH), TAG,
+                        "Initialize GDMA for MIPI CSI failed");
 
     return ESP_OK;
 }

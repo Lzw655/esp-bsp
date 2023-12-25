@@ -8,6 +8,7 @@
 #include "lvgl.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
+#include "bsp/camera.h"
 #include "ESP_UI.h"
 #include "apps.h"
 
@@ -18,44 +19,55 @@ static const char *TAG = "main";
 
 extern "C" void app_main(void)
 {
-#if CONFIG_EXAMPLE_USE_SD_CARD
-    if (bsp_sdcard_mount() == NULL) {
-        ESP_LOGE(TAG, "SD card mount failed");
-        assert(0);
-    }
-    ESP_LOGI(TAG, "SD card mount successfully");
-#else
-    ESP_ERROR_CHECK(bsp_spiffs_mount());
-    ESP_LOGI(TAG, "SPIFFS mount successfully");
-#endif
+// #if CONFIG_EXAMPLE_USE_SD_CARD
+//     if (bsp_sdcard_mount() == NULL) {
+//         ESP_LOGE(TAG, "SD card mount failed");
+//         assert(0);
+//     }
+//     ESP_LOGI(TAG, "SD card mount successfully");
+// #else
+//     ESP_ERROR_CHECK(bsp_spiffs_mount());
+//     ESP_LOGI(TAG, "SPIFFS mount successfully");
+// #endif
 
-    ESP_ERROR_CHECK(bsp_extra_codec_init());
-#if CONFIG_EXAMPLE_USE_SD_CARD
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT"/music"));
-#else
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT"/music"));
-#endif
+//     ESP_ERROR_CHECK(bsp_extra_codec_init());
+// #if CONFIG_EXAMPLE_USE_SD_CARD
+//     ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT"/music"));
+// #else
+//     ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT"/music"));
+// #endif
 
-    bsp_display_start();
-    bsp_display_lock(0);
+//     bsp_display_start();
+//     bsp_display_lock(0);
 
-    ESP_UI *eui = new ESP_UI();
-    assert(eui != NULL);
+//     ESP_UI *eui = new ESP_UI();
+//     assert(eui != NULL);
 
-    MusicPlayer *music_player = new MusicPlayer();
+//     MusicPlayer *music_player = new MusicPlayer();
 
-    eui->init();
-    eui->data()->data.home.app_table.screen_num = 1;
-    eui->data()->data.home.app_table.screen_show_default = 0;
-    // eui->data()->data.enable_disp_wallpaper = false;
-    eui->data()->data.disp_background_color = lv_color_hex(0x0091ff);
-    // eui->enableDebugMode();
-    eui->enableGesture(bsp_display_get_input_dev());
-    eui->begin();
-    eui->installApp(*music_player);
-    // eui->printFormatData();
+//     eui->init();
+//     eui->data()->data.home.app_table.screen_num = 1;
+//     eui->data()->data.home.app_table.screen_show_default = 0;
+//     // eui->data()->data.enable_disp_wallpaper = false;
+//     eui->data()->data.disp_background_color = lv_color_hex(0x0091ff);
+//     // eui->enableDebugMode();
+//     eui->enableGesture(bsp_display_get_input_dev());
+//     eui->begin();
+//     eui->installApp(*music_player);
+//     // eui->printFormatData();
 
-    bsp_display_unlock();
+//     bsp_display_unlock();
+
+    void *camera_buffer = NULL;
+    size_t camera_buffer_size = 0;
+    bsp_camera_config_t camera_cfg = {
+        .hor_res = 320,
+        .ver_res = 240,
+        .buffer_ptr = &camera_buffer,
+        .buffer_size_ptr = &camera_buffer_size,
+    };
+    ESP_ERROR_CHECK(bsp_camera_new(&camera_cfg));
+    ESP_LOGI(TAG, "Create camera successfully, buffer: %p, size: %d", camera_buffer, camera_buffer_size);
 
 #if LOG_MEM_INFO
     static char buffer[128];    /* Make sure buffer is enough for `sprintf` */
