@@ -4,6 +4,7 @@ list(APPEND PRIV_INCLUDE_DIR "priv_include")
 list(APPEND PRIV_INCLUDE_DIR "src/mipi/include")
 list(APPEND PRIV_INCLUDE_DIR "src/mipi_soc/include")
 list(APPEND PRIV_INCLUDE_DIR "src/ppa/include")
+list(APPEND PRIV_INCLUDE_DIR "src/sensor/include")
 
 file(GLOB_RECURSE SRCS src/*.c)
 

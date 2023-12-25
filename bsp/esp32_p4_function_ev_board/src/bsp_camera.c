@@ -11,11 +11,13 @@
 #include "dw_gdma.h"
 #include "mipi_csi.h"
 #include "mipi_dsi.h"
+#include "sensor.h"
 
 #include "sdkconfig.h"
 #include "bsp_err_check.h"
 #include "bsp/esp32_p4_function_ev_board.h"
 #include "bsp/camera.h"
+#include "bsp/esp-bsp.h"
 
 #define MIPI_CAM_DMA_TRANS_SAR  (0x50104000)
 #define GDMA_INTR_SOURCE        (((INTERRUPT_CORE0_GDMA_INT_MAP_REG - DR_REG_INTERRUPT_CORE0_BASE) / 4))
@@ -45,6 +47,9 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
         dma_buffer = heap_caps_aligned_alloc(TEST_CSI_TR_WIDTH, csi_block_bytes, MALLOC_CAP_SPIRAM);
         ESP_RETURN_ON_FALSE(dma_buffer != NULL, ESP_ERR_NO_MEM, TAG, "Allocate DMA buffer_ptr failed");
 
+        *config->buffer_ptr = dma_buffer;
+        *config->buffer_size_ptr = csi_block_bytes;
+
         ESP_LOGI(TAG, "Allocate DMA buffer at %p, size: %d", dma_buffer, csi_block_bytes);
     } else {
         ESP_RETURN_ON_FALSE(*config->buffer_size_ptr >= csi_block_bytes, ESP_ERR_INVALID_ARG, TAG,
@@ -57,6 +62,14 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
 
     ESP_RETURN_ON_ERROR(dw_gdma_mipi_csi_init(dma_buffer, csi_block_bytes, TEST_CSI_TR_WIDTH), TAG,
                         "Initialize GDMA for MIPI CSI failed");
+
+    mipi_csi_bridge_init();
+
+    ESP_RETURN_ON_ERROR(bsp_i2c_init(), TAG, "Initialize I2C failed");
+
+#if TEST_CSI_OV5647
+    ESP_RETURN_ON_ERROR(sensor_ov5647_init(), TAG, "Initialize OV5647 failed");
+#endif
 
     return ESP_OK;
 }
