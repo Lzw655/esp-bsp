@@ -29,6 +29,7 @@
 #include "src/draw/sw/lv_draw_sw.h"
 #include "bsp_lvgl_port.h"
 #include "bsp_err_check.h"
+#include "bsp_lcd.h"
 #include "mipi_dsi.h"
 #include "bsp/display.h"
 #include "bsp/touch.h"
@@ -57,8 +58,6 @@ ppa_test_t ppa_test = {0};
 static const char *TAG = "bsp_lvgl_port";
 static SemaphoreHandle_t lvgl_mux;                  // LVGL mutex
 static TaskHandle_t lvgl_task_handle = NULL;
-
-extern uint8_t *dsi_frame_buf;
 
 static lldesc_dma2d_t *rx_link[4], * tx_link[4];
 
@@ -105,6 +104,9 @@ static void dma2d_ch1_isr(void *arg)
 static void flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
 {
     uint32_t len = (sizeof(lv_color_t) * ((area->y2 - area->y1 + 1) * (area->x2 - area->x1 + 1)));
+    void *dsi_frame_buf = NULL;
+
+    ESP_ERROR_CHECK(bsp_lcd_get_frame_buffer(1, &dsi_frame_buf));
 
 #if !TEST_PPA
     uint8_t *frame_buffer = dsi_frame_buf;

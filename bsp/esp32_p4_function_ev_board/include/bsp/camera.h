@@ -13,6 +13,9 @@ extern "C" {
 #endif
 
 typedef struct {
+    uint16_t width;
+    uint16_t height;
+    void **buffer;
 } bsp_camera_config_t;
 
 esp_err_t bsp_camera_new(const bsp_camera_config_t *config);

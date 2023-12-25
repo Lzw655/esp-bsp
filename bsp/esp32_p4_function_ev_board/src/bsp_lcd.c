@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: CC0-1.0
  */
+#include <stdio.h>
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
@@ -10,62 +11,22 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "interrupt_core0_reg.h"
 #include "hp_sys_clkrst_reg.h"
 #include "mipi_dsi_host_struct.h"
-#include "gdma_struct.h"
-
 #include "mipi_dsi.h"
 #include "bsp_lcd.h"
+#include "dw_gdma.h"
 
-#define TEST_DISP_PATTERN   (0)
-
-#define MIPI_LCD_DMA_TRANS_DAR  (0x50105000)
-#define GDMA_INTR_SOURCE        (((INTERRUPT_CORE0_GDMA_INT_MAP_REG - DR_REG_INTERRUPT_CORE0_BASE) / 4))
-#define GDMA_BUFFER_MASTER      (1)
+#define TEST_DISP_PATTERN       (0)
+#define TEST_LCD_FRAME_BUF_NUM  (1)
 
 static const char *TAG = "bsp_lcd";
 
-volatile uint8_t *dsi_frame_buf = NULL;
-volatile uint32_t dsi_frame_cnt = 0;
-
-static void gdma_isr()
-{
-    uint32_t rtn = 0;
-
-    // ESP_LOGI(TAG, "[ISR] Enter into GDMA ISR.\n");
-
-    // Clear interrupt.
-    rtn = (GDMA.int_st0.val);
-
-    // If is channel 2 interrupt event.
-    if (rtn & 0x2) {
-        if (GDMA.ch[1].int_st0.val) { // Is channel 2 "transfer done" interrupt event.
-            typeof(GDMA.ch[1].int_st0) status = GDMA.ch[1].int_st0;
-
-            if (status.dma_tfr_done) {
-                // gpio_probe(MIPI_DSI_PROBE_IO, 1);
-
-                GDMA.ch[1].sar0 = (uint32_t)dsi_frame_buf;
-                GDMA.chen0.val = ((GDMA.chen0.val) | 0x202);
-
-                // dsi_frame_cnt++;
-                // gpio_probe(MIPI_DSI_PROBE_IO, 0);
-            }
-
-            // Clear all interrupt of ch1
-            GDMA.ch[1].int_clr0.val = 0xffffffff;
-        }
-    }
-}
+static void *frame_buf[TEST_LCD_FRAME_BUF_NUM] = { NULL };
+static void *current_frame_buf = NULL;
 
 esp_err_t bsp_lcd_init(void)
 {
-    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_GDMA_SYS_CLK_EN);
-    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_GDMA_SYS_CLK_EN);
-    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_GDMA);
-    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_GDMA);
-
     REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_DMA2D_SYS_CLK_EN);
     REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_DMA2D_SYS_CLK_EN);
     REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DMA2D);
@@ -76,54 +37,14 @@ esp_err_t bsp_lcd_init(void)
     REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_PPA);
     REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_PPA);
 
-    dsi_frame_buf = heap_caps_aligned_alloc(TEST_DSI_TR_WIDTH, MIPI_DSI_DISP_BUF_SIZE, MALLOC_CAP_SPIRAM);
-    assert(dsi_frame_buf != NULL);
+    for (int i = 0; i < TEST_LCD_FRAME_BUF_NUM; i++) {
+        frame_buf[i] = heap_caps_aligned_alloc(TEST_DSI_TR_WIDTH, MIPI_DSI_DISP_BUF_SIZE, MALLOC_CAP_SPIRAM);
+        ESP_RETURN_ON_FALSE(frame_buf[i] != NULL, ESP_ERR_NO_MEM, TAG, "Failed to allocate DSI frame buffer");
+    }
 
-    uint32_t dsi_block_ts = (MIPI_DSI_DISP_BUF_SIZE / TEST_DSI_TR_WIDTH);
-
-    // Enable GDMA.
-    GDMA.cfg0.val = 0x0;
-    GDMA.cfg0.int_en = 0x1;
-    GDMA.cfg0.dmac_en = 0x1;
-
-    GDMA.ch[1].int_st_ena0.val = 0x0;
-    GDMA.ch[1].int_sig_ena0.val = 0x0;
-    GDMA.ch[1].int_st_ena0.dma_tfr_done = 0x1;
-    GDMA.ch[1].int_sig_ena0.dma_tfr_done = 0x1;
-    GDMA.ch[1].cfg0.val = 0x0;
-    GDMA.ch[1].cfg0.wr_uid = 0x3;
-    GDMA.ch[1].cfg0.rd_uid = 0x3;
-    GDMA.ch[1].cfg0.src_multblk_type = 0x0;
-    GDMA.ch[1].cfg0.dst_multblk_type = 0x0;
-    GDMA.ch[1].cfg1.val = 0x0;
-    GDMA.ch[1].cfg1.tt_fc = 0x6;
-    GDMA.ch[1].cfg1.hs_sel_src = 0x0;
-    GDMA.ch[1].cfg1.hs_sel_dst = 0x0;
-    GDMA.ch[1].cfg1.src_per = 0x0;
-    GDMA.ch[1].cfg1.dst_per = 0x0;
-    GDMA.ch[1].cfg1.src_osr_lmt = 0x4;
-    GDMA.ch[1].cfg1.dst_osr_lmt = 0x1;
-    GDMA.ch[1].sar0 = (uint32_t)dsi_frame_buf;
-    GDMA.ch[1].dar0 = MIPI_LCD_DMA_TRANS_DAR;
-    GDMA.ch[1].block_ts0.val =  dsi_block_ts - 1;
-    GDMA.ch[1].ctl0.val = 0x0;
-    GDMA.ch[1].ctl0.sms = GDMA_BUFFER_MASTER;
-    GDMA.ch[1].ctl0.dms = 0x0;
-    GDMA.ch[1].ctl0.sinc = 0x0;
-    GDMA.ch[1].ctl0.dinc = 0x1;
-    GDMA.ch[1].ctl0.src_tr_width = (TEST_DSI_TR_WIDTH == 64 ? 0x3 : 0x2);
-    GDMA.ch[1].ctl0.dst_tr_width = (TEST_DSI_TR_WIDTH == 64 ? 0x3 : 0x2);
-    GDMA.ch[1].ctl0.src_msize = 0x8;
-    GDMA.ch[1].ctl0.dst_msize = 0x7;
-    GDMA.ch[1].ctl1.ioc_blktfr = 0;
-    GDMA.ch[1].ctl1.arlen = 16;
-    GDMA.ch[1].ctl1.arlen_en = 1;
-    GDMA.ch[1].ctl1.awlen = 16;
-    GDMA.ch[1].ctl1.awlen_en = 1;
-
-    intr_handle_t intr_handle;
-
-    esp_intr_alloc(GDMA_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, gdma_isr, NULL, &intr_handle);
+    ESP_RETURN_ON_ERROR(dw_gdma_mipi_dsi_init(frame_buf[0], MIPI_DSI_DISP_BUF_SIZE, TEST_DSI_TR_WIDTH), TAG,
+                        "Initialize GDMA for MIPI DSI failed");
+    current_frame_buf = frame_buf[0];
 
     return ESP_OK;
 }
@@ -1373,7 +1294,7 @@ esp_err_t bsp_lcd_start(void)
 #define GREEN (MIPI_DSI_RGB565_GREEN)
 #define BLUE  (MIPI_DSI_RGB565_BLUE)
 #endif
-    mipi_dsi_data_t *tx_data = (mipi_dsi_data_t *)dsi_frame_buf
+    mipi_dsi_data_t *tx_data = (mipi_dsi_data_t *)current_frame_buf
                                mipi_dsi_data_t line[MIPI_DSI_DISP_HSIZE];
     uint32_t dsi_size = sizeof(mipi_dsi_data_t);
     uint32_t data = 0;
@@ -1413,11 +1334,31 @@ esp_err_t bsp_lcd_start(void)
     esp_spiram_writeback_cache();
 #endif
 
-    // Enable GDMA CH-2 transfer.
-    GDMA.chen0.val = ((GDMA.chen0.val) | 0x202);
+    // Enable DW_GDMA CH-2 transfer.
+    dw_gdma_start();
+
     esp_rom_delay_us(10);
 
     ESP_LOGI(TAG, "[MIPI-HAL] LCD start\n");
+
+    return ESP_OK;
+}
+
+esp_err_t bsp_lcd_get_frame_buffer(uint32_t fb_num, void **fb0, ...)
+{
+    ESP_RETURN_ON_FALSE(fb_num && fb_num <= TEST_LCD_FRAME_BUF_NUM, ESP_ERR_INVALID_ARG, TAG,
+                        "Invalid frame buffer number");
+
+    void **fb_itor = fb0;
+    va_list args;
+    va_start(args, fb0);
+    for (int i = 0; i < fb_num; i++) {
+        if (fb_itor) {
+            *fb_itor = frame_buf[i];
+            fb_itor = va_arg(args, void **);
+        }
+    }
+    va_end(args);
 
     return ESP_OK;
 }

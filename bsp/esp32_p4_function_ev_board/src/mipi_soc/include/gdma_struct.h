@@ -3,8 +3,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef _SOC_GDMA_STRUCT_H_
-#define _SOC_GDMA_STRUCT_H_
+#ifndef _SOC_DW_GDMA_STRUCT_H_
+#define _SOC_DW_GDMA_STRUCT_H_
 
 
 #ifdef __cplusplus
@@ -629,8 +629,6 @@ typedef volatile struct {
     } ch[4];
 } gdma_dev_t;
 extern gdma_dev_t DW_GDMA;
-
-#define GDMA DW_GDMA
 
 #ifdef __cplusplus
 }

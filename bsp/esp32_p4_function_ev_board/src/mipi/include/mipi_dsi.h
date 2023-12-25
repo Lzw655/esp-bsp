@@ -28,7 +28,7 @@
 #elif (TEST_DSI_COLOR_MODE==MIPI_DSI_RGB565_MODE)
 #define TEST_DSI_COLOR_WIDTH (16)
 #endif
-#define TEST_DSI_TR_WIDTH    (64)
+#define TEST_DSI_TR_WIDTH       (64)
 
 #define  MIPI_DSI_RGB888_RED     (0xFF0000)
 #define  MIPI_DSI_RGB888_GREEN   (0x00FF00)
