@@ -21,28 +21,17 @@
 
 #include "sdkconfig.h"
 
-/* Don't modify the following macros */
-#define BOARD_TYPE_FLY_LINE     (0)
-#define BOARD_TYPE_FIB          (1)
-#define BOARD_TYPE_SAMPLE       (2)
-
-/* Change this macro to choose the target board */
-#define BOARD_TYPE              (BOARD_TYPE_SAMPLE)
-
-_Static_assert(BOARD_TYPE == BOARD_TYPE_FLY_LINE || BOARD_TYPE == BOARD_TYPE_FIB || BOARD_TYPE == BOARD_TYPE_SAMPLE,
-               "Please define `BOARD_TYPE` macro to choose the target board");
-
 /**************************************************************************************************
  *  ESP32-P4-Function-ev-board Pinout
  **************************************************************************************************/
 /* I2C */
-#if BOARD_TYPE == BOARD_TYPE_FLY_LINE
+#if CONFIG_BSP_BOARD_TYPE_FLY_LINE
 #define BSP_I2C_SCL             (GPIO_NUM_22)
 #define BSP_I2C_SDA             (GPIO_NUM_23)
-#elif BOARD_TYPE == BOARD_TYPE_FIB
+#elif CONFIG_BSP_BOARD_TYPE_FIB
 #define BSP_I2C_SCL             (GPIO_NUM_8)
 #define BSP_I2C_SDA             (GPIO_NUM_7)
-#elif BOARD_TYPE == BOARD_TYPE_SAMPLE
+#elif CONFIG_BSP_BOARD_TYPE_SAMPLE
 #define BSP_I2C_SCL             (GPIO_NUM_34)
 #define BSP_I2C_SDA             (GPIO_NUM_31)
 #endif
@@ -54,13 +43,13 @@ _Static_assert(BOARD_TYPE == BOARD_TYPE_FLY_LINE || BOARD_TYPE == BOARD_TYPE_FIB
 #define BSP_I3C_SLV_SDA         (GPIO_NUM_21)
 
 /* Audio */
-#if (BOARD_TYPE == BOARD_TYPE_FLY_LINE) || (BOARD_TYPE == BOARD_TYPE_SAMPLE)
+#if CONFIG_BSP_BOARD_TYPE_FLY_LINE || CONFIG_BSP_BOARD_TYPE_SAMPLE
 #define BSP_I2S_SCLK            (GPIO_NUM_29)
 #define BSP_I2S_MCLK            (GPIO_NUM_30)
 #define BSP_I2S_LCLK            (GPIO_NUM_27)
 #define BSP_I2S_DOUT            (GPIO_NUM_26)    // To Codec ES8311
 #define BSP_I2S_DSIN            (GPIO_NUM_28)   // From Codec ES8311
-#elif BOARD_TYPE == BOARD_TYPE_FIB
+#elif CONFIG_BSP_BOARD_TYPE_FIB
 #define BSP_I2S_SCLK            (GPIO_NUM_12)
 #define BSP_I2S_MCLK            (GPIO_NUM_13)
 #define BSP_I2S_LCLK            (GPIO_NUM_10)
@@ -71,11 +60,11 @@ _Static_assert(BOARD_TYPE == BOARD_TYPE_FLY_LINE || BOARD_TYPE == BOARD_TYPE_FIB
 
 /* Wireless */
 #define BSP_WIRELESS_EN         (GPIO_NUM_54)
-#if (BOARD_TYPE == BOARD_TYPE_FLY_LINE) || (BOARD_TYPE == BOARD_TYPE_SAMPLE)
+#if CONFIG_BSP_BOARD_TYPE_FLY_LINE || CONFIG_BSP_BOARD_TYPE_SAMPLE
 #define BSP_WIRELESS_WKUP       (GPIO_NUM_35)
 #define BSP_WIRELESS_D0         (GPIO_NUM_49)
 #define BSP_WIRELESS_D1         (GPIO_NUM_50)
-#elif BOARD_TYPE == BOARD_TYPE_FIB
+#elif CONFIG_BSP_BOARD_TYPE_FIB
 #define BSP_WIRELESS_WKUP       (GPIO_NUM_6)
 #define BSP_WIRELESS_D0         (GPIO_NUM_14)
 #define BSP_WIRELESS_D1         (GPIO_NUM_15)
