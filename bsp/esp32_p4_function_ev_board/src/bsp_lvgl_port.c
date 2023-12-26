@@ -577,41 +577,41 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
     rx_link[3] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00C0);
     tx_link[3] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00E0);
 
-    //reset
+    // reset DMA2D
     DMA2D.out_ch[0].conf0.out_rst = 1;
     DMA2D.out_ch[0].conf0.out_rst = 0;
     DMA2D.in_ch0.conf0.in_rst = 1;
     DMA2D.in_ch0.conf0.in_rst = 0;
 
-    //inter-mem & extr-mem start/end addr
+    // inter-mem & extr-mem start/end addr
     DMA2D.intr_mem_start_addr = 0x00000000;
     DMA2D.intr_mem_end_addr = 0xFFFFFFFF;
     DMA2D.extr_mem_start_addr = 0x60000000;
     DMA2D.extr_mem_end_addr = 0x8FFFFFFF;
 
-    //peri_sel
+    // peri_sel
     DMA2D.out_ch[0].peri_sel.out_peri_sel = 0x1;
     DMA2D.in_ch0.peri_sel.in_peri_sel = 0x1;
 
-    //commonn
+    // commonn
     DMA2D.out_ch[0].conf0.out_dscr_port_en = 0x1;
     DMA2D.out_ch[0].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[0].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[0].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x4;
+    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x3;
     DMA2D.out_ch[0].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.in_ch0.conf0.in_mem_trans_en = 0x0;
     DMA2D.in_ch0.conf0.in_dscr_port_en = 0x1;
     DMA2D.in_ch0.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x4;
+    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x3;
     DMA2D.in_ch0.conf0.indscr_burst_en = 0x1;
 
-    //dscr addr
+    // dscr addr
     DMA2D.out_ch[0].link_addr = rx_link[0];
     DMA2D.in_ch0.link_addr = tx_link[0];
 
-    //reset
+    // reset DMA2D
     DMA2D.out_ch[1].conf0.out_rst = 1;
     DMA2D.out_ch[1].conf0.out_rst = 0;
     DMA2D.out_ch[2].conf0.out_rst = 1;
@@ -619,31 +619,32 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
     DMA2D.in_ch1.conf0.in_rst = 1;
     DMA2D.in_ch1.conf0.in_rst = 0;
 
-    //peri_sel
+    // peri_sel
     DMA2D.out_ch[1].peri_sel.out_peri_sel = 0x2;
     DMA2D.out_ch[2].peri_sel.out_peri_sel = 0x3;
     DMA2D.in_ch1.peri_sel.in_peri_sel = 0x2;
 
-    //commonn
+    // commonn
     DMA2D.out_ch[1].conf0.out_dscr_port_en = 0x0;
     DMA2D.out_ch[1].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[1].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[1].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x4;
+    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x3;
     DMA2D.out_ch[1].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.out_ch[2].conf0.out_dscr_port_en = 0x0;
     DMA2D.out_ch[2].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[2].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[2].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x4;
+    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x3;
     DMA2D.out_ch[2].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.in_ch1.conf0.in_dscr_port_en = 0x0;
     DMA2D.in_ch1.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x4;
+    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x3;
     DMA2D.in_ch1.conf0.indscr_burst_en = 0x1;
-    //dscr addr
+
+    // dscr addr
     DMA2D.out_ch[1].link_addr = rx_link[1];
     DMA2D.out_ch[2].link_addr = rx_link[2];
     DMA2D.in_ch1.link_addr = tx_link[1];
