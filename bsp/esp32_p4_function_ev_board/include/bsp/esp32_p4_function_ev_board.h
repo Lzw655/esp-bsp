@@ -17,6 +17,7 @@
 #include "driver/i2s_std.h"
 #include "driver/gpio.h"
 #include "driver/sdmmc_host.h"
+#include "mipi_dsi.h"
 #include "lvgl.h"
 
 #include "sdkconfig.h"

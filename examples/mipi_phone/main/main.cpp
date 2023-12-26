@@ -9,6 +9,8 @@
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
 #include "bsp/camera.h"
+#include "bsp/display.h"
+#include "bsp_lcd.h"
 #include "ESP_UI.h"
 #include "apps.h"
 
@@ -58,16 +60,19 @@ extern "C" void app_main(void)
 
 //     bsp_display_unlock();
 
-    void *camera_buffer = NULL;
-    size_t camera_buffer_size = 0;
-    bsp_camera_config_t camera_cfg = {
-        .hor_res = 320,
-        .ver_res = 240,
-        .buffer_ptr = &camera_buffer,
-        .buffer_size_ptr = &camera_buffer_size,
-    };
-    ESP_ERROR_CHECK(bsp_camera_new(&camera_cfg));
-    ESP_LOGI(TAG, "Create camera successfully, buffer: %p, size: %d", camera_buffer, camera_buffer_size);
+    void *frame_buffer = NULL;
+    size_t frame_buffer_size = MIPI_DSI_DISP_BUF_SIZE;
+
+    ESP_ERROR_CHECK(bsp_display_new(NULL, NULL, NULL));
+    ESP_ERROR_CHECK(bsp_lcd_get_frame_buffer(1, &frame_buffer));
+
+    // bsp_camera_config_t camera_cfg = {
+    //     .hor_res = MIPI_DSI_DISP_HSIZE,
+    //     .ver_res = MIPI_DSI_DISP_VSIZE,
+    //     .buffer_ptr = &frame_buffer,
+    //     .buffer_size_ptr = &frame_buffer_size,
+    // };
+    // ESP_ERROR_CHECK(bsp_camera_new(&camera_cfg));
 
 #if LOG_MEM_INFO
     static char buffer[128];    /* Make sure buffer is enough for `sprintf` */

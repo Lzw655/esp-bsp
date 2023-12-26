@@ -40,6 +40,8 @@ esp_err_t bsp_lcd_init(void)
     for (int i = 0; i < TEST_LCD_FRAME_BUF_NUM; i++) {
         frame_buf[i] = heap_caps_aligned_alloc(TEST_DSI_TR_WIDTH, MIPI_DSI_DISP_BUF_SIZE, MALLOC_CAP_SPIRAM);
         ESP_RETURN_ON_FALSE(frame_buf[i] != NULL, ESP_ERR_NO_MEM, TAG, "Failed to allocate DSI frame buffer");
+
+        memset(frame_buf[i], 0xff, MIPI_DSI_DISP_BUF_SIZE);
     }
 
     ESP_RETURN_ON_ERROR(dw_gdma_mipi_dsi_init(frame_buf[0], MIPI_DSI_DISP_BUF_SIZE, TEST_DSI_TR_WIDTH), TAG,

@@ -54,6 +54,7 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
     } else {
         ESP_RETURN_ON_FALSE(*config->buffer_size_ptr >= csi_block_bytes, ESP_ERR_INVALID_ARG, TAG,
                             "External DMA buffer_ptr is too small");
+        ESP_LOGI(TAG, "Use external DMA buffer %p, size: %d", dma_buffer, csi_block_bytes);
     }
 
     mipi_csi_init();

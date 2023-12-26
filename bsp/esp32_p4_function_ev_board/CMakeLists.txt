@@ -1,17 +1,16 @@
-set(PRIV_INCLUDE_DIR "")
-
-list(APPEND PRIV_INCLUDE_DIR "priv_include")
-list(APPEND PRIV_INCLUDE_DIR "src/mipi/include")
-list(APPEND PRIV_INCLUDE_DIR "src/mipi_soc/include")
-list(APPEND PRIV_INCLUDE_DIR "src/ppa/include")
-list(APPEND PRIV_INCLUDE_DIR "src/sensor/include")
+set(INCLUDE_DIR "")
+list(APPEND INCLUDE_DIR "include")
+list(APPEND INCLUDE_DIR "priv_include")
+list(APPEND INCLUDE_DIR "src/mipi/include")
+list(APPEND INCLUDE_DIR "src/mipi_soc/include")
+list(APPEND INCLUDE_DIR "src/ppa/include")
+list(APPEND INCLUDE_DIR "src/sensor/include")
 
 file(GLOB_RECURSE SRCS src/*.c)
 
 idf_component_register(
     SRCS ${SRCS}
-    INCLUDE_DIRS "include"
-    PRIV_INCLUDE_DIRS ${PRIV_INCLUDE_DIR}
+    INCLUDE_DIRS ${INCLUDE_DIR}
     REQUIRES driver
     PRIV_REQUIRES esp_timer spiffs esp_lcd fatfs
 )
