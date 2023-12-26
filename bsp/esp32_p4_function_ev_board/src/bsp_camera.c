@@ -12,6 +12,7 @@
 #include "mipi_csi.h"
 #include "mipi_dsi.h"
 #include "sensor.h"
+#include "isp.h"
 
 #include "sdkconfig.h"
 #include "bsp_err_check.h"
@@ -58,6 +59,8 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
     }
 
     mipi_csi_init();
+
+    isp_init(config->hor_res, config->ver_res);
 
     vTaskDelay(pdMS_TO_TICKS(1));
 

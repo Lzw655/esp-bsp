@@ -16,7 +16,9 @@ esp_err_t dw_gdma_mipi_dsi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
 
 esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_width);
 
-esp_err_t dw_gdma_start(void);
+esp_err_t dw_gdma_mipi_dsi_start(void);
+
+esp_err_t dw_gdma_mipi_csi_start(void);
 
 #ifdef __cplusplus
 }

@@ -10,6 +10,7 @@
 #include "esp_intr_alloc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "rom/cache.h"
 
 #include "hp_sys_clkrst_reg.h"
 #include "mipi_dsi_host_struct.h"
@@ -41,7 +42,10 @@ esp_err_t bsp_lcd_init(void)
         frame_buf[i] = heap_caps_aligned_alloc(TEST_DSI_TR_WIDTH, MIPI_DSI_DISP_BUF_SIZE, MALLOC_CAP_SPIRAM);
         ESP_RETURN_ON_FALSE(frame_buf[i] != NULL, ESP_ERR_NO_MEM, TAG, "Failed to allocate DSI frame buffer");
 
+        ESP_LOGI(TAG, "Allocate DSI frame buffer %d at %p, size: %d", i, frame_buf[i], MIPI_DSI_DISP_BUF_SIZE);
+
         memset(frame_buf[i], 0xff, MIPI_DSI_DISP_BUF_SIZE);
+        Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, frame_buf[i], MIPI_DSI_DISP_BUF_SIZE);
     }
 
     ESP_RETURN_ON_ERROR(dw_gdma_mipi_dsi_init(frame_buf[0], MIPI_DSI_DISP_BUF_SIZE, TEST_DSI_TR_WIDTH), TAG,
@@ -1337,7 +1341,7 @@ esp_err_t bsp_lcd_start(void)
 #endif
 
     // Enable DW_GDMA CH-2 transfer.
-    dw_gdma_start();
+    dw_gdma_mipi_dsi_start();
 
     esp_rom_delay_us(10);
 

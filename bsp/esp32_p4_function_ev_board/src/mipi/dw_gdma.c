@@ -97,8 +97,6 @@ static void dw_gdma_isr()
 
 static esp_err_t dw_gdma_common_init(void)
 {
-    intr_handle_t intr_handle = NULL;
-
     if (dw_gdma_initialized) {
         return ESP_OK;
     }
@@ -112,9 +110,6 @@ static esp_err_t dw_gdma_common_init(void)
     DW_GDMA.cfg0.val = 0x0;
     DW_GDMA.cfg0.dmac_en = 0x1;
     DW_GDMA.cfg0.int_en = 0x1;
-
-    ESP_RETURN_ON_ERROR(esp_intr_alloc(DW_GDMA_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, dw_gdma_isr, NULL, &intr_handle), TAG,
-                        "Allocate DW_GDMA interrupt failed");
 
     dw_gdma_initialized = true;
 
@@ -224,16 +219,40 @@ esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
     return ESP_OK;
 }
 
-esp_err_t dw_gdma_start(void)
+esp_err_t dw_gdma_mipi_dsi_start(void)
 {
-    if (dw_gdma_started) {
-        return ESP_OK;
+    if (!dw_gdma_started) {
+        dw_gdma_started = true;
+
+        intr_handle_t intr_handle = NULL;
+        ESP_RETURN_ON_ERROR(esp_intr_alloc(DW_GDMA_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, dw_gdma_isr, NULL, &intr_handle), TAG,
+                            "Allocate DW_GDMA interrupt failed");
     }
 
     DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
-    dw_gdma_started = true;
 
-    ESP_LOGI(TAG, "DW_GDMA start.");
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    ESP_LOGI(TAG, "DW_GDMA mipi-dsi start.");
+
+    return ESP_OK;
+}
+
+esp_err_t dw_gdma_mipi_csi_start(void)
+{
+    if (!dw_gdma_started) {
+        dw_gdma_started = true;
+
+        intr_handle_t intr_handle = NULL;
+        ESP_RETURN_ON_ERROR(esp_intr_alloc(DW_GDMA_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, dw_gdma_isr, NULL, &intr_handle), TAG,
+                            "Allocate DW_GDMA interrupt failed");
+    }
+
+    DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x101);
+
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    ESP_LOGI(TAG, "DW_GDMA mipi-csi start.");
 
     return ESP_OK;
 }

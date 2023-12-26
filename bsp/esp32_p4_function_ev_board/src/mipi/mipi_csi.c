@@ -30,7 +30,7 @@ void mipi_csi_init (void)
 
     mipi_csi_host_phy_initialization();
 
-    ESP_LOGI(TAG, "[MIPI-HAL] MIPI CSI initialization done.\n");
+    printf("[MIPI-HAL] MIPI CSI initialization done.\n");
 }
 
 /* --------------------------------------------------------
@@ -46,10 +46,10 @@ void mipi_csi_bridge_init (void)
     MIPI_CSI_BRIDGE.dma_req_cfg.dma_burst_len = 256;
 
     // MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e = 0x1;
-    ESP_LOGI(TAG, "has_hsync_e: 0x%x\n", MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e);
+    printf("has_hsync_e: 0x%x\n", MIPI_CSI_BRIDGE.frame_cfg.has_hsync_e);
 
     // MIPI_CSI_BRIDGE.data_type_cfg.data_type_min = 0x20;
-    ESP_LOGI(TAG, "csi data_type_min: 0x%x, data_type_max: 0x%x, dma_req_interval: %d\n", MIPI_CSI_BRIDGE.data_type_cfg.data_type_min, MIPI_CSI_BRIDGE.data_type_cfg.data_type_max, MIPI_CSI_BRIDGE.dma_req_interval.dma_req_interval);
+    printf("csi data_type_min: 0x%x, data_type_max: 0x%x, dma_req_interval: %d\n", MIPI_CSI_BRIDGE.data_type_cfg.data_type_min, MIPI_CSI_BRIDGE.data_type_cfg.data_type_max, MIPI_CSI_BRIDGE.dma_req_interval.dma_req_interval);
     MIPI_CSI_BRIDGE.data_type_cfg.data_type_min = 0x12;
 
 #if TEST_CSI_COLOR_MODE == MIPI_CSI_YUV422_MODE
@@ -61,7 +61,7 @@ void mipi_csi_bridge_init (void)
     // Enable CSI Bridge.
     MIPI_CSI_BRIDGE.en.val = 0x1;
 
-    ESP_LOGI(TAG, "[MIPI-HAL] MIPI CSI Bridge initialization done.\n");
+    printf("[MIPI-HAL] MIPI CSI Bridge initialization done.\n");
 }
 
 /* --------------------------------------------------------
@@ -190,7 +190,7 @@ static void mipi_csi_host_phy_initialization (void)
     // ---------------------------------------
     // 5. Done.
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] MIPI CSI Host Controller & D-PHY initialization done.\n");
+    printf("[MIPI-HAL] MIPI CSI Host Controller & D-PHY initialization done.\n");
 }
 
 static void mipi_csi_clock_init(void)

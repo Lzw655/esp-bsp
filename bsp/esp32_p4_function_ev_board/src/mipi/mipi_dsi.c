@@ -175,7 +175,7 @@ bool mipi_dsih_gen_wr_packet(uint8_t vc, uint8_t data_type, uint8_t *params, uin
     uint32_t temp = 0;
     uint16_t word_count = 0;
 
-    // ESP_LOGI(TAG, "param_length: %d\n", param_length);
+    // printf("param_length: %d\n", param_length);
 
     // clean buffer
     for (word_count = 0; (!mipi_dsih_hal_gen_read_fifo_empty()); word_count += 4) {
@@ -184,12 +184,12 @@ bool mipi_dsih_gen_wr_packet(uint8_t vc, uint8_t data_type, uint8_t *params, uin
 
     if ((params == 0) && (param_length != 0)) {
         /* pointer NULL */
-        ESP_LOGI(TAG, "null params\n");
+        printf("null params\n");
         return false;
     }
 
     if (param_length > 200) {
-        ESP_LOGI(TAG, "param length too large\n");
+        printf("param length too large\n");
         return false;
     }
 
@@ -201,18 +201,18 @@ bool mipi_dsih_gen_wr_packet(uint8_t vc, uint8_t data_type, uint8_t *params, uin
         payload = params + (2 * sizeof(params[0]));
         word_count = (params[1] << 8) | params[0];
 
-        // ESP_LOGI(TAG, "word count: 0x%X\n", word_count);
+        // printf("word count: 0x%X\n", word_count);
 
         if (word_count > 200) {
-            ESP_LOGI(TAG, "word count too large\n");
+            printf("word count too large\n");
             return false;
         }
 
         if ((param_length - 2) < word_count) {
-            ESP_LOGI(TAG, "sent > input payload. complemented with zeroes\n");
+            printf("sent > input payload. complemented with zeroes\n");
             compliment_counter = (param_length - 2) - word_count;
         } else if ((param_length - 2) > word_count) {
-            ESP_LOGI(TAG, "overflow - input > sent. payload truncated\n");
+            printf("overflow - input > sent. payload truncated\n");
         }
 
         for (i = 0; i < (param_length - 2); i += j) {
@@ -229,7 +229,7 @@ bool mipi_dsih_gen_wr_packet(uint8_t vc, uint8_t data_type, uint8_t *params, uin
                 esp_rom_delay_us(500);
             }
             if (!(timeout < DSIH_FIFO_ACTIVE_WAIT)) {
-                ESP_LOGI(TAG, "timeout! %u\n", timeout);
+                printf("timeout! %u\n", timeout);
                 return false;
             }
         }
@@ -249,7 +249,7 @@ bool mipi_dsih_gen_wr_packet(uint8_t vc, uint8_t data_type, uint8_t *params, uin
                 }
             }
             if (!(timeout < DSIH_FIFO_ACTIVE_WAIT)) {
-                ESP_LOGI(TAG, "timeout!!\n");
+                printf("timeout!!\n");
                 return false;
             }
         }
@@ -314,10 +314,10 @@ bool mipi_dsih_gen_rd_packet(uint8_t vc,
     /* listen to the same virtual channel as the one sent to */
     mipi_dsih_hal_gen_rd_vc(vc);
 
-    // ESP_LOGI(TAG, "data_type: 0x%X\n", data_type);
-    // ESP_LOGI(TAG, "msb_byte: 0x%X\n", msb_byte);
-    // ESP_LOGI(TAG, "lsb_byte: 0x%X\n", lsb_byte);
-    // ESP_LOGI(TAG, "bytes_to_read: %d\n", bytes_to_read);
+    // printf("data_type: 0x%X\n", data_type);
+    // printf("msb_byte: 0x%X\n", msb_byte);
+    // printf("lsb_byte: 0x%X\n", lsb_byte);
+    // printf("bytes_to_read: %d\n", bytes_to_read);
 
     // clean buffer
     for (counter = 0; (!mipi_dsih_hal_gen_read_fifo_empty()); counter += 4) {
@@ -337,7 +337,7 @@ bool mipi_dsih_gen_rd_packet(uint8_t vc,
     }
     if (!(timeout < DSIH_FIFO_ACTIVE_WAIT)) {
 
-        ESP_LOGI(TAG, "TX READ command timed out\n");
+        printf("TX READ command timed out\n");
         return false;
     }
 
@@ -375,13 +375,13 @@ bool mipi_dsih_gen_rd_packet(uint8_t vc,
                 }
                 return last_count + 1;
             } else {
-                ESP_LOGI(TAG, "RX buffer empty\n");
+                printf("RX buffer empty\n");
                 return true;
             }
         }
         esp_rom_delay_us(500);
     }
-    ESP_LOGI(TAG, "RX command timed out\n");
+    printf("RX command timed out\n");
     return false;
 }
 
@@ -530,7 +530,7 @@ void mipi_dcs_write_data(uint8_t *data, uint32_t len)
 
 esp_err_t mipi_dsi_clock_init(void)
 {
-    ESP_LOGI(TAG, "Initialize MIPI-DSI clock");
+    printf("Initialize MIPI-DSI clock\n");
 
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL02_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPHY_CLK_SRC_SEL, 1);
     REG_CLR_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPHY_CFG_CLK_EN);
@@ -547,12 +547,14 @@ esp_err_t mipi_dsi_clock_init(void)
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_SRC_SEL, 1);
     REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_EN);
 
+    vTaskDelay(pdMS_TO_TICKS(200));
+
     return ESP_OK;
 }
 
 esp_err_t mipi_dsi_host_phy_init(void)
 {
-    ESP_LOGI(TAG, "Initialize MIPI-DSI host and phy");
+    printf("Initialize MIPI-DSI host and phy\n");
 
     /**
      *  1. When the null packets are enabled:
@@ -577,8 +579,8 @@ esp_err_t mipi_dsi_host_phy_init(void)
     uint32_t DPI_HLINE_TIME = (int)((DPI_HSA + DPI_HBP + DPI_HFP + DPI_HACT) * MIPI_DPI_TIME_FACTOR);
     uint32_t DPI_FPS         = (MIPI_DPI_CLOCK_RATE / ((MIPI_DSI_IMAGE_HSIZE + MIPI_DSI_IMAGE_HSYNC + MIPI_DSI_IMAGE_HBP + MIPI_DSI_IMAGE_HFP) * (MIPI_DSI_IMAGE_VSIZE + MIPI_DSI_IMAGE_VSYNC + MIPI_DSI_IMAGE_VBP + MIPI_DSI_IMAGE_VFP))); // fps
 
-    ESP_LOGI(TAG, "MIPI_DPI_TIME_FACTOR: %f, DPI_HSA_TIME: %d, DPI_HBP_TIME: %d, DPI_HLINE_TIME: %d, DPI_FPS: %d\n",
-             MIPI_DPI_TIME_FACTOR, DPI_HSA_TIME, DPI_HBP_TIME, DPI_HLINE_TIME, DPI_FPS);
+    printf("MIPI_DPI_TIME_FACTOR: %f, DPI_HSA_TIME: %d, DPI_HBP_TIME: %d, DPI_HLINE_TIME: %d, DPI_FPS: %d\n",
+           MIPI_DPI_TIME_FACTOR, DPI_HSA_TIME, DPI_HBP_TIME, DPI_HLINE_TIME, DPI_FPS);
 
     MIPI_DSI_HOST.pwr_up.val = 0x0;
 
@@ -586,7 +588,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // Configure Display Pixel Interface
     // ---------------------------------------
 
-    ESP_LOGI(TAG, "[MIPI-HAL] Configure Display Pixel Interface.\n");
+    printf("[MIPI-HAL] Configure Display Pixel Interface.\n");
     MIPI_DSI_HOST.dpi_vcid.val = 0x00000000 |
                                  ((0 & 0x00000003) << 0); // bit[ 1: 0] VCID                  = 0 (DPI Virtual Channel ID)
 
@@ -636,7 +638,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Configure Display Bus Interface
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Configure Display Bus Interface.\n");
+    printf("[MIPI-HAL] Configure Display Bus Interface.\n");
 
     // LPDT escape传输command
     MIPI_DSI_HOST.cmd_mode_cfg.val = 0x00000000 |
@@ -658,7 +660,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Configure Packet Handler
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Configure Packet Handler.\n");
+    printf("[MIPI-HAL] Configure Packet Handler.\n");
     MIPI_DSI_HOST.pckhdl_cfg.val = 0x00000000 |
                                    ((1 & 0x00000001) << 4) | // bit[    4] CRC_ENABLE            = 1 (Enables the CRC reception and error reporting.
                                    ((1 & 0x00000001) << 3) | // bit[    3] ECC_ENABLE            = 1 (Enables the ECC reception, error correction, and reporting.
@@ -696,7 +698,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Define SFR2GENERIC ADDRESS REGISTERS
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Define SFR2GENERIC ADDRESS REGISTERS.\n");
+    printf("[MIPI-HAL] Define SFR2GENERIC ADDRESS REGISTERS.\n");
     MIPI_DSI_HOST.phy_tmr_cfg.val = 0x00000000 |
                                     ((50 & 0x000003ff) << 16) | // bit[25:16] PHY_HS_TO_LP          = 38 (Maximum time that the D-PHY takes to go from HS to LP transmission measured in lane byte clock cycles.
                                     ((104 & 0x000003ff) << 0);  // bit[ 9: 0] PHY_LP_TO_HS          = 96 (Maximum time required to perform a read command in lane byte clock cycles. This register can only be modified when no read command is in progress.
@@ -707,7 +709,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Configure core's timeouts
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Configure core's timeouts.\n");
+    printf("[MIPI-HAL] Configure core's timeouts.\n");
     MIPI_DSI_HOST.to_cnt_cfg.val = 0x00000000 |
                                    ((0 & 0x0000ffff) << 16) | // bit[31:16] HSTX_TO_CNT           = 0 (Timeout counter that triggers a low-power reception timeout contention detection.
                                    ((0 & 0x0000ffff) << 0);   // bit[15: 0] LPRX_TO_CNT           = 0 (Timeout counter that triggers a high-speed transmission timeout contention detection.
@@ -720,7 +722,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Configure core's phy parameters
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Configure core's phy parameters.\n");
+    printf("[MIPI-HAL] Configure core's phy parameters.\n");
     MIPI_DSI_HOST.phy_tmr_lpclk_cfg.val = 0x00000000 |
                                           ((46 & 0x000003ff) << 16) | // bit[25:16] PHY_CLKHS2LP_TIME     = 56  (Maximum time that the D-PHY takes to go from HS to LP transmission measured in lane byte clock cycles.
                                           ((128 & 0x000003ff) << 0);  // bit[ 9: 0] PHY_CLKLP2HS_TIME     = 125 (Maximum time that the D-PHY takes to go from LP to HS transmission measured in lane byte clock cycles.
@@ -744,7 +746,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Enabling all interrupts
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Enabling all interrupts.\n");
+    printf("[MIPI-HAL] Enabling all interrupts.\n");
     MIPI_DSI_HOST.int_msk0.val = 0xFFFFFFFF;
     MIPI_DSI_HOST.int_msk1.val = 0xFFFFFFFF;
 
@@ -800,7 +802,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
         {1450, 0x2C, 0x07},
         {1500, 0x3C, 0x07}
     };
-    ESP_LOGI(TAG, "[MIPI-HAL] Configuring new PLL parameters.\n");
+    printf("[MIPI-HAL] Configuring new PLL parameters.\n");
     // dwc_mipi_dphy_bd2_tsmc40ulp25_databook_1g5.pdf page84: REFCLK = 24MHz(not 27MHz parameters)
     // mipi_dsi_dphy_write_control(0x44, 0x34); // 1000MHz
 
@@ -815,12 +817,12 @@ esp_err_t mipi_dsi_host_phy_init(void)
         }
     }
     mipi_dsi_dphy_write_control(0x44, hs_freq << 1);
-    ESP_LOGI(TAG, "[MIPI-HAL] DPHY lane_rate: %d Hz, hs_freq: 0x%x, N: %d, M: %d\n", pll_freq, hs_freq, pll_N, pll_M);
+    printf("[MIPI-HAL] DPHY lane_rate: %d Hz, hs_freq: 0x%x, N: %d, M: %d\n", pll_freq, hs_freq, pll_N, pll_M);
 
     // ---------------------------------------
     // Waking up Core
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] Waking up Core.\n");
+    printf("[MIPI-HAL] Waking up Core.\n");
     MIPI_DSI_HOST.pwr_up.val = 0x0;
     MIPI_DSI_HOST.pwr_up.val = 0xF;
 
@@ -855,25 +857,25 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // wait_for_PHY_PWRUP
     // ---------------------------------------
-    ESP_LOGI(TAG, "[MIPI-HAL] wait_for_PHY_PWRUP.\n");
+    printf("[MIPI-HAL] wait_for_PHY_PWRUP.\n");
     // Wait till PHY_STATUS[0] == 1.
-    ESP_LOGI(TAG, "[MIPI-HAL] Wait till PHY_STATUS[0] == 1.\n");
+    printf("[MIPI-HAL] Wait till PHY_STATUS[0] == 1.\n");
 
     uint32_t stat = 0;
     do {
         esp_rom_delay_us(50);
         stat = (MIPI_DSI_HOST.phy_status.val);
-        ESP_LOGI(TAG, "stat: 0x%x\n", stat);
+        printf("stat: 0x%x\n", stat);
     } while (0 == (stat & 0x1));
 
     // Wait till PHY_STATUS[2] == 1.
-    ESP_LOGI(TAG, "[MIPI-HAL] Wait till PHY_STATUS[2] == 1.\n");
+    printf("[MIPI-HAL] Wait till PHY_STATUS[2] == 1.\n");
     do {
         esp_rom_delay_us(50);
         stat = (MIPI_DSI_HOST.phy_status.val);
     } while (0 == (stat & 0x4));
 
-    ESP_LOGI(TAG, "[MIPI-HAL] MIPI DSI Host Controller & D-PHY initialization done.\n");
+    printf("[MIPI-HAL] MIPI DSI Host Controller & D-PHY initialization done.\n");
 
     return ESP_OK;
 }
@@ -923,12 +925,12 @@ esp_err_t mipi_dsi_bridge_init(void)
     MIPI_DSI_BRIDGE.yuv_cfg.yuv_pix_endian = 0;
     MIPI_DSI_BRIDGE.yuv_cfg.yuv422_format = 0;
 
-    ESP_LOGI(TAG, "credit_thrd: %d\n", MIPI_DSI_BRIDGE.raw_buf_credit_ctl.credit_thrd);
+    printf("credit_thrd: %d\n", MIPI_DSI_BRIDGE.raw_buf_credit_ctl.credit_thrd);
     MIPI_DSI_BRIDGE.raw_buf_credit_ctl.credit_thrd = 1024;
 
     MIPI_DSI_BRIDGE.dpi_config_update.val  = 0x1;
 
-    ESP_LOGI(TAG, "[MIPI-HAL] MIPI DSI Bridge initialization done.\n");
+    printf("[MIPI-HAL] MIPI DSI Bridge initialization done.\n");
 
     return ESP_OK;
 }
@@ -945,7 +947,7 @@ esp_err_t mipi_dsi_bridge_start(void)
     MIPI_DSI_BRIDGE.dpi_misc_config.dpi_en = 0x1;
     MIPI_DSI_BRIDGE.dpi_config_update.val  = 0x1; // Remember to do update.
 
-    ESP_LOGI(TAG, "[MIPI-HAL] MIPI DSI Bridge start.\n");
+    printf("[MIPI-HAL] MIPI DSI Bridge start.\n");
 
     return ESP_OK;
 }
