@@ -60,8 +60,8 @@
 #endif
 
 #define MIPI_CSI_IMAGE_HSIZE           800
-#define MIPI_CSI_IMAGE_VSIZE           1280 / 2
-// #define MIPI_CSI_IMAGE_VSIZE           0
+// #define MIPI_CSI_IMAGE_VSIZE           1280 / 2
+#define MIPI_CSI_IMAGE_VSIZE           0
 
 int mipi_csi_bridge_initialization (void) ;
 

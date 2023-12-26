@@ -78,7 +78,7 @@ static void lv_disp_init(void)
 {
     int stat;
 
-    
+
 }
 
 #if TEST_INTERRUPT
@@ -129,7 +129,7 @@ static void lv_disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_c
     int index = 0;
 
     cnt = 0;
-    
+
     for (int y = area->y1; y <= area->y2; y++) {
         for (int x = area->x1; x <= area->x2; x++) {
             index = (y * LVGL_DISP_HSIZE + x) * 2 ;
@@ -149,7 +149,7 @@ static void lv_disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_c
     dma2d_link_dscr_init(rx_link[0], NULL, color_p, hb, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
     dma2d_link_dscr_init(tx_link[0], NULL, dsi_frame_buffer, LVGL_DISP_HSIZE, LVGL_DISP_VSIZE, hb, vb, 1, 1, DMA2D_COLOR_MODE(TEST_DSI_COLOR_WIDTH), 0, area->x1, area->y1);
 
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024); 
+    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
 
     PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
     PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
@@ -259,7 +259,7 @@ static void ppa_blend(lv_color_t * dest_buf, const lv_area_t * dest_area, lv_coo
     while (!DMA2D.in_int_raw_ch1.suc_eof);
 #endif
 
-    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t)); 
+    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t));
     Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t));
 #endif
 }
@@ -277,7 +277,7 @@ static void ppa_fill(lv_color_t * dest_buf, lv_coord_t dest_width, const lv_area
 
     dma2d_link_dscr_init(tx_link[1], NULL, dest_buf, dest_width, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, fill_area->x1, 0);
 
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024); 
+    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
 
     PPA.blend_trans_mode.blend_rst = 0x1;
     PPA.blend_trans_mode.blend_rst = 0x0;
@@ -321,7 +321,7 @@ static void ppa_fill(lv_color_t * dest_buf, lv_coord_t dest_width, const lv_area
     PPA.blend_trans_mode.blend_trans_mode_update = 0x1;
 
     while (!DMA2D.in_ch1.int_raw.in_done);
-#else 
+#else
     uint32_t scal_x = 1;
     uint32_t scal_y = 1;
     int max_fill_line = 255;
@@ -335,7 +335,7 @@ static void ppa_fill(lv_color_t * dest_buf, lv_coord_t dest_width, const lv_area
             dma2d_link_dscr_init(rx_link[0], NULL, &color.full, 1, 1, 1, 1, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
             dma2d_link_dscr_init(tx_link[0], NULL, dest_buf, dest_width, vb, scal_x, scal_y, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, fill_area->x1, 0);
 
-            Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024); 
+            Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
 
             PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
             PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
@@ -387,7 +387,7 @@ static void ppa_fill(lv_color_t * dest_buf, lv_coord_t dest_width, const lv_area
             dma2d_link_dscr_init(rx_link[0], NULL, dma2d_access_addr_map(buf), dest_width, 1, hb, 1, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
             dma2d_link_dscr_init(tx_link[0], NULL, dma2d_access_addr_map(dest_buf), dest_width, vb, hb, scal_y, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, fill_area->x1, y * max_fill_line);
 
-            Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024); 
+            Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
 
             PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
             PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
@@ -430,7 +430,7 @@ static void ppa_fill(lv_color_t * dest_buf, lv_coord_t dest_width, const lv_area
             dma2d_link_dscr_init(rx_link[0], NULL, dma2d_access_addr_map(buf), dest_width, 1, hb, 1, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
             dma2d_link_dscr_init(tx_link[0], NULL, dma2d_access_addr_map(dest_buf), dest_width, vb, hb, scal_y, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, fill_area->x1, y * max_fill_line);
 
-            Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024); 
+            Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
 
             PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
             PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
@@ -471,8 +471,8 @@ static void ppa_fill(lv_color_t * dest_buf, lv_coord_t dest_width, const lv_area
 
 #endif
 
-    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_width * vb * sizeof(lv_color_t)); 
-    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_width * vb * sizeof(lv_color_t)); 
+    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_width * vb * sizeof(lv_color_t));
+    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_width * vb * sizeof(lv_color_t));
 }
 
 void lv_draw_ppa_buffer_copy(lv_draw_ctx_t * draw_ctx,
@@ -504,13 +504,13 @@ void lv_draw_ppa_buffer_copy(lv_draw_ctx_t * draw_ctx,
 
     Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, src_bufc, len);
     Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, src_bufc, len);
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, dest_bufc, len); 
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, dest_bufc, len); 
+    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, dest_bufc, len);
+    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, dest_bufc, len);
 
     dma2d_link_dscr_init(rx_link[0], NULL, src_bufc, hb, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
     dma2d_link_dscr_init(tx_link[0], NULL, dest_bufc, hb, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
 
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024); 
+    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
 
     PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
     PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
@@ -545,8 +545,8 @@ void lv_draw_ppa_buffer_copy(lv_draw_ctx_t * draw_ctx,
 #else
     while (!DMA2D.in_int_raw_ch0.suc_eof);
 #endif
-    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_bufc, len); 
-    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_bufc, len); 
+    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_bufc, len);
+    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_bufc, len);
 #endif
 }
 
@@ -611,7 +611,7 @@ static bool lv_disp_input(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     ret = gt911_pos_read(&x, &y);
     if (ret && y >= LVGL_DISP_VPOS) {
         data->state = LV_INDEV_STATE_PR;
-        data->point.x = x;   
+        data->point.x = x;
         data->point.y = y - LVGL_DISP_VPOS;
     } else {
         data->state =  LV_INDEV_STATE_REL;
@@ -655,7 +655,7 @@ static void gui_task(void *arg)
     disp_drv.flush_cb = lv_disp_flush;    /*Used when `LV_VDB_SIZE != 0` in lv_conf.h (buffered drawing)*/
     disp_drv.hor_res = hsize;
     disp_drv.ver_res = vsize;
-    disp_drv.physical_hor_res = -1; 
+    disp_drv.physical_hor_res = -1;
     disp_drv.physical_ver_res = -1;
     disp_drv.offset_x = 0;
     disp_drv.offset_y = 0;
@@ -675,7 +675,7 @@ static void gui_task(void *arg)
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = lv_disp_input;         /*This function will be called periodically (by the library) to get the mouse position and state*/
     indev[0] = lv_indev_drv_register(&indev_drv);
-    
+
     lv_disp_set_default(disp[0]);
 
     gui_init(disp, indev, NULL);
@@ -708,41 +708,41 @@ static void mipi_task(void *arg)
     rx_link[3] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00C0);
     tx_link[3] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00E0);
 
-    //reset
+    // reset DMA2D
     DMA2D.out_ch[0].conf0.out_rst = 1;
     DMA2D.out_ch[0].conf0.out_rst = 0;
     DMA2D.in_ch0.conf0.in_rst = 1;
     DMA2D.in_ch0.conf0.in_rst = 0;
 
-    //inter-mem & extr-mem start/end addr
+    // inter-mem & extr-mem start/end addr
     DMA2D.intr_mem_start_addr = 0x00000000;
     DMA2D.intr_mem_end_addr = 0xFFFFFFFF;
     DMA2D.extr_mem_start_addr = 0x60000000;
     DMA2D.extr_mem_end_addr = 0x8FFFFFFF;
 
-    //peri_sel
+    // peri_sel
     DMA2D.out_ch[0].peri_sel.out_peri_sel = 0x1;
     DMA2D.in_ch0.peri_sel.in_peri_sel = 0x1;
 
-    //commonn
+    // commonn
     DMA2D.out_ch[0].conf0.out_dscr_port_en = 0x1;
     DMA2D.out_ch[0].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[0].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[0].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x4;
+    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x3;
     DMA2D.out_ch[0].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.in_ch0.conf0.in_mem_trans_en = 0x0;
     DMA2D.in_ch0.conf0.in_dscr_port_en = 0x1;
     DMA2D.in_ch0.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x4;
+    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x3;
     DMA2D.in_ch0.conf0.indscr_burst_en = 0x1;
 
-    //dscr addr
+    // dscr addr
     DMA2D.out_ch[0].link_addr = rx_link[0];
     DMA2D.in_ch0.link_addr = tx_link[0];
 
-    //reset
+    // reset DMA2D
     DMA2D.out_ch[1].conf0.out_rst = 1;
     DMA2D.out_ch[1].conf0.out_rst = 0;
     DMA2D.out_ch[2].conf0.out_rst = 1;
@@ -750,39 +750,39 @@ static void mipi_task(void *arg)
     DMA2D.in_ch1.conf0.in_rst = 1;
     DMA2D.in_ch1.conf0.in_rst = 0;
 
-    //peri_sel
+    // peri_sel
     DMA2D.out_ch[1].peri_sel.out_peri_sel = 0x2;
     DMA2D.out_ch[2].peri_sel.out_peri_sel = 0x3;
     DMA2D.in_ch1.peri_sel.in_peri_sel = 0x2;
 
-    //commonn
+    // commonn
     DMA2D.out_ch[1].conf0.out_dscr_port_en = 0x0;
     DMA2D.out_ch[1].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[1].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[1].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x4;
+    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x3;
     DMA2D.out_ch[1].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.out_ch[2].conf0.out_dscr_port_en = 0x0;
     DMA2D.out_ch[2].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[2].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[2].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x4;
+    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x3;
     DMA2D.out_ch[2].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.in_ch1.conf0.in_dscr_port_en = 0x0;
     DMA2D.in_ch1.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x4;
+    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x3;
     DMA2D.in_ch1.conf0.indscr_burst_en = 0x1;
-    //dscr addr
+
+    // dscr addr
     DMA2D.out_ch[1].link_addr = rx_link[1];
     DMA2D.out_ch[2].link_addr = rx_link[2];
     DMA2D.in_ch1.link_addr = tx_link[1];
 
 #if TEST_INTERRUPT
-    dma2d_in_ch0_sem = xSemaphoreCreateBinary( );
-    dma2d_in_ch1_sem = xSemaphoreCreateBinary( );
-    
+    dma2d_in_ch0_sem = xSemaphoreCreateBinary();
+    dma2d_in_ch1_sem = xSemaphoreCreateBinary();
     esp_intr_alloc(DMA2D_IN_CH0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, dma2d_ch0_isr, NULL, NULL);
     esp_intr_alloc(DMA2D_IN_CH1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, dma2d_ch1_isr, NULL, NULL);
 #endif
@@ -797,7 +797,7 @@ static void mipi_task(void *arg)
         // printf("infifo_status_ch1: 0x%x, infifo_full: %d, infifo_empty: %d, infifo_cnt: %d\n", DMA2D.infifo_status_ch1.val, DMA2D.infifo_status_ch1.infifo_full, DMA2D.infifo_status_ch1.infifo_empty, DMA2D.infifo_status_ch1.infifo_cnt);
         // printf("axi_err: %x\n", DMA2D.axi_err.val);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }   
+    }
 }
 
 void app_main(void)
