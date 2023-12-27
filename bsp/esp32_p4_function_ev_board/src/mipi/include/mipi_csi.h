@@ -12,8 +12,9 @@
 #include "isp_struct.h"
 
 #define MIPI_CSI_IMAGE_HSIZE           800
-// #define MIPI_CSI_IMAGE_VSIZE           1280 / 2
-#define MIPI_CSI_IMAGE_VSIZE           0
+#define MIPI_CSI_IMAGE_VSIZE           960
+// #define MIPI_CSI_IMAGE_VSIZE           (1280 / 2)
+// #define MIPI_CSI_IMAGE_VSIZE           0
 
 #define MIPI_CSI_RGB888_MODE (0)
 #define MIPI_CSI_RGB666_MODE (1)
@@ -72,6 +73,8 @@
  *           Host-Controller and D-PHY.
  * @params : void
  **/
-void mipi_csi_init (void);
+esp_err_t mipi_csi_clock_init(void);
 
-void mipi_csi_bridge_init (void);
+esp_err_t mipi_csi_host_phy_init (void);
+
+esp_err_t mipi_csi_bridge_init (void);

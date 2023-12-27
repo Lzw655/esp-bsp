@@ -177,7 +177,9 @@ void mipi_dcs_read_cmd(uint8_t cmd, uint32_t len, ...);
 
 void mipi_dcs_write_data(uint8_t *data, uint32_t len);
 
-esp_err_t mipi_dsi_phy_host_init(void);
+esp_err_t mipi_dsi_clock_init(void);
+
+esp_err_t mipi_dsi_host_phy_init(void);
 
 esp_err_t mipi_dsi_bridge_init(void);
 

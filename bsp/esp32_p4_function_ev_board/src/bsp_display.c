@@ -16,7 +16,9 @@ static const char *TAG = "bsp_display";
 
 esp_err_t bsp_display_new(const bsp_display_config_t *config, esp_lcd_panel_handle_t *ret_panel, esp_lcd_panel_io_handle_t *ret_io)
 {
-    mipi_dsi_phy_host_init();
+    mipi_dsi_clock_init();
+
+    mipi_dsi_host_phy_init();
 
     bsp_lcd_init();
 

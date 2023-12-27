@@ -34,6 +34,8 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
     ESP_RETURN_ON_FALSE((*config->buffer_size_ptr == 0) || (*config->buffer_ptr != NULL), ESP_ERR_INVALID_ARG, TAG,
                         "Invalid buffer configuration");
 
+    ESP_RETURN_ON_ERROR(bsp_i2c_init(), TAG, "Initialize I2C failed");
+
     uint32_t csi_block_bytes = 0;
     void *dma_buffer = *config->buffer_ptr;
     bool external_dma_buffer = (*config->buffer_ptr != NULL);
@@ -58,18 +60,18 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
         ESP_LOGI(TAG, "Use external DMA buffer %p, size: %d", dma_buffer, csi_block_bytes);
     }
 
-    mipi_csi_init();
+    ESP_RETURN_ON_ERROR(mipi_csi_clock_init(), TAG, "Initialize MIPI CSI clock failed");
 
-    isp_init(config->hor_res, config->ver_res);
+    ESP_RETURN_ON_ERROR(isp_init(config->hor_res, config->ver_res), TAG, "Initialize ISP failed");
 
-    vTaskDelay(pdMS_TO_TICKS(1));
+    ESP_RETURN_ON_ERROR(mipi_csi_host_phy_init(), TAG, "Initialize MIPI CSI Host PHY failed");
 
     ESP_RETURN_ON_ERROR(dw_gdma_mipi_csi_init(dma_buffer, csi_block_bytes, TEST_CSI_TR_WIDTH), TAG,
                         "Initialize GDMA for MIPI CSI failed");
 
-    mipi_csi_bridge_init();
+    ESP_RETURN_ON_ERROR(dw_gdma_mipi_csi_start(), TAG, "Start GDMA for MIPI CSI failed");
 
-    ESP_RETURN_ON_ERROR(bsp_i2c_init(), TAG, "Initialize I2C failed");
+    ESP_RETURN_ON_ERROR(mipi_csi_bridge_init(), TAG, "Initialize MIPI CSI Bridge failed");
 
 #if TEST_CSI_OV5647
     ESP_RETURN_ON_ERROR(sensor_ov5647_init(), TAG, "Initialize OV5647 failed");

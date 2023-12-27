@@ -72,7 +72,7 @@ esp_err_t bsp_lcd_start(void)
     // The 3 parameter (ID3): the module/driver ID
     uint8_t ID1, ID2, ID3;
     mipi_dcs_read_cmd(0xDA, 3, &ID1, &ID2, &ID3);
-    ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x\n", ID1, ID2, ID3);
+    ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x", ID1, ID2, ID3);
 
 #if TEST_DSI_ST7796
     mipi_dcs_write_cmd(0x11, 0);         //Sleep Out
@@ -318,7 +318,7 @@ esp_err_t bsp_lcd_start(void)
     mipi_dcs_read_cmd(0x00, 1, &ID1);
     mipi_dcs_read_cmd(0x01, 1, &ID2);
     mipi_dcs_read_cmd(0x02, 1, &ID3);
-    ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x\n", ID1, ID2, ID3);
+    ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x", ID1, ID2, ID3);
 
     //800x1280
     //VS_VBP_VFP=2/16/16
@@ -1161,7 +1161,7 @@ esp_err_t bsp_lcd_start(void)
 #endif
 
 #if TEST_DSI_ICN6211_800
-    ESP_LOGI(TAG, "init ICN6211 800x480\n");
+    ESP_LOGI(TAG, "init ICN6211 800x480");
     vTaskDelay(pdMS_TO_TICKS(200));
 
     mipi_gen_write_cmd(0x7A, 1, 0xC1);
@@ -1196,14 +1196,14 @@ esp_err_t bsp_lcd_start(void)
     for (int x = 0; x < 16; x++) {
         vTaskDelay(pdMS_TO_TICKS(200)); // must delay
         mipi_gen_read_cmd(0x20 + x, 1, &cmd_data[x]);
-        ESP_LOGI(TAG, "cmd[0x%x]: 0x%x\n", 0x20 + x, cmd_data[x]);
+        ESP_LOGI(TAG, "cmd[0x%x]: 0x%x", 0x20 + x, cmd_data[x]);
     }
     vTaskDelay(pdMS_TO_TICKS(200));
 
 #endif
 
 #if TEST_DSI_ICN6211_1280
-    ESP_LOGI(TAG, "init ICN6211 1280x800\n");
+    ESP_LOGI(TAG, "init ICN6211 1280x800");
     vTaskDelay(pdMS_TO_TICKS(200));
 
     mipi_gen_write_cmd(0x7A, 1, 0xC1);
@@ -1238,7 +1238,7 @@ esp_err_t bsp_lcd_start(void)
     for (int x = 0; x < 16; x++) {
         vTaskDelay(pdMS_TO_TICKS(200)); // must delay
         mipi_gen_read_cmd(0x20 + x, 1, &cmd_data[x]);
-        ESP_LOGI(TAG, "cmd[0x%x]: 0x%x\n", 0x20 + x, cmd_data[x]);
+        ESP_LOGI(TAG, "cmd[0x%x]: 0x%x", 0x20 + x, cmd_data[x]);
     }
     vTaskDelay(pdMS_TO_TICKS(200));
 
@@ -1248,7 +1248,7 @@ esp_err_t bsp_lcd_start(void)
     // 可以断开 clk lane, 观察data lane0 是否进入了escape mode
     uint16_t data[128];
 
-    ESP_LOGI(TAG, "esacpe mode test\n");
+    ESP_LOGI(TAG, "esacpe mode test");
 
     for (int x = 0; x < 128; x++) {
         data[x] = 0x001F;
@@ -1345,7 +1345,7 @@ esp_err_t bsp_lcd_start(void)
 
     esp_rom_delay_us(10);
 
-    ESP_LOGI(TAG, "[MIPI-HAL] LCD start\n");
+    ESP_LOGI(TAG, "[MIPI-HAL] LCD start");
 
     return ESP_OK;
 }

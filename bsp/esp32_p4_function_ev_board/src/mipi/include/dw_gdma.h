@@ -20,6 +20,10 @@ esp_err_t dw_gdma_mipi_dsi_start(void);
 
 esp_err_t dw_gdma_mipi_csi_start(void);
 
+uint32_t dw_gdma_mipi_dsi_get_frame_count(void);
+
+uint32_t dw_gdma_mipi_csi_get_frame_count(void);
+
 #ifdef __cplusplus
 }
 #endif

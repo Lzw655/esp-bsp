@@ -257,7 +257,7 @@ esp_err_t ov5647_read(uint16_t addr, uint8_t *read_buf)
 
 esp_err_t ov5647_write(uint16_t addr, uint8_t data)
 {
-    uint8_t write_buf[3] = {addr & 0xff, addr >> 8, data};
+    uint8_t write_buf[3] = {addr >> 8, addr & 0xff, data};
     // return sccb_write_reg16(OV_ADDR, addr, 1, data);
     return i2c_master_write_to_device(BSP_I2C_NUM, OV_ADDR, write_buf, sizeof(write_buf), pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
 }
@@ -278,12 +278,12 @@ esp_err_t sensor_ov5647_init()
 {
     uint8_t sensor_id[2] ;
 
-    ESP_LOGI(TAG, "ADDR: 0x%x\n", OV_ADDR);
+    printf("ADDR: 0x%x\n", OV_ADDR);
 
     ESP_RETURN_ON_ERROR(ov5647_read( 0x300a, &sensor_id[0]), TAG, "Read register failed");
     ESP_RETURN_ON_ERROR(ov5647_read( 0x300b, &sensor_id[1]), TAG, "Read register failed");
 
-    ESP_LOGI(TAG, "id, %x %x\r\n", sensor_id[0], sensor_id[1]);
+    printf("id, %x %x\r\n", sensor_id[0], sensor_id[1]);
 
     ESP_RETURN_ON_ERROR(ov5647_write(0x0100, 0x00), TAG, "Write register failed");
     ESP_RETURN_ON_ERROR(ov5647_write(0x0103, 0x01), TAG, "Write register failed");

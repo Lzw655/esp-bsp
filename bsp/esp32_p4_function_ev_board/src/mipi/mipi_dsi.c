@@ -530,8 +530,6 @@ void mipi_dcs_write_data(uint8_t *data, uint32_t len)
 
 esp_err_t mipi_dsi_clock_init(void)
 {
-    printf("Initialize MIPI-DSI clock\n");
-
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL02_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPHY_CLK_SRC_SEL, 1);
     REG_CLR_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPHY_CFG_CLK_EN);
     REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPHY_CFG_CLK_EN);
@@ -547,7 +545,7 @@ esp_err_t mipi_dsi_clock_init(void)
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_SRC_SEL, 1);
     REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_EN);
 
-    vTaskDelay(pdMS_TO_TICKS(200));
+    printf("[MIPI-HAL] MIPI DSI clock initialization done.\n");
 
     return ESP_OK;
 }
@@ -876,15 +874,6 @@ esp_err_t mipi_dsi_host_phy_init(void)
     } while (0 == (stat & 0x4));
 
     printf("[MIPI-HAL] MIPI DSI Host Controller & D-PHY initialization done.\n");
-
-    return ESP_OK;
-}
-
-esp_err_t mipi_dsi_phy_host_init(void)
-{
-    mipi_dsi_clock_init();
-
-    mipi_dsi_host_phy_init();
 
     return ESP_OK;
 }

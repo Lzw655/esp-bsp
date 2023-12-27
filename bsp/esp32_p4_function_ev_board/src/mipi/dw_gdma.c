@@ -5,12 +5,19 @@
  */
 #include "esp_check.h"
 #include "esp_err.h"
+#include "driver/gpio.h"
 
 #include "hp_sys_clkrst_reg.h"
 #include "interrupt_core0_reg.h"
 #include "gdma_struct.h"
 #include "mipi_dsi.h"
 #include "mipi_csi.h"
+
+#define MIPI_DSI_PROBE_IO       (-1)
+#define MIPI_CSI_PROBE_IO       (-1)
+// #define MIPI_DSI_PROBE_IO       (45)
+// #define MIPI_CSI_PROBE_IO       (46)
+#define MIPI_FRAME_PROBE_COUNT  (100)
 
 #define MIPI_LCD_DMA_TRANS_DAR      (0x50105000)
 #define MIPI_CAM_DMA_TRANS_SAR      (0x50104000)
@@ -31,18 +38,21 @@ static void dw_gdma_isr()
 {
     uint32_t rtn = 0;
 
-    // ESP_LOGI(TAG, "[ISR] Enter into DW_GDMA ISR.\n");
+    // printf("[ISR] Enter into DW_GDMA ISR.\n");
 
     // Clear interrupt.
     rtn = (DW_GDMA.int_st0.val);
 
     // If is channel 1 (mipi-csi) interrupt event.
     if (rtn & 0x1) {
+        // printf("[ISR] Enter into DW_GDMA ISR.\n");
         if (DW_GDMA.ch[0].int_st0.val) { // Is channel 1 "transfer done" interrupt event.
             typeof(DW_GDMA.ch[0].int_st0) status = DW_GDMA.ch[0].int_st0;
 
             if (status.dma_tfr_done) {
-                // gpio_probe(MIPI_CSI_PROBE_IO, 1);
+#if MIPI_CSI_PROBE_IO >= 0
+                gpio_set_level(MIPI_CSI_PROBE_IO, 1);
+#endif
 
                 // if (TEST_MULTI_FRAME) {
                 //     switch (buf_wr_ptr) {
@@ -66,8 +76,12 @@ static void dw_gdma_isr()
                 DW_GDMA.ch[0].dar0 = (uint32_t)csi_dma_buf;
                 DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x101);
 
-                // csi_frame_cnt++;
-                // gpio_probe(MIPI_CSI_PROBE_IO, 0);
+#if MIPI_CSI_PROBE_IO >= 0
+                if (++csi_frame_cnt == MIPI_FRAME_PROBE_COUNT) {
+                    csi_frame_cnt = 0;
+                }
+                gpio_set_level(MIPI_CSI_PROBE_IO, 0);
+#endif
             }
 
             DW_GDMA.ch[0].int_clr0.val = 0xffffffff;
@@ -80,13 +94,19 @@ static void dw_gdma_isr()
             typeof(DW_GDMA.ch[1].int_st0) status = DW_GDMA.ch[1].int_st0;
 
             if (status.dma_tfr_done) {
-                // gpio_probe(MIPI_DSI_PROBE_IO, 1);
+#if MIPI_DSI_PROBE_IO >= 0
+                gpio_set_level(MIPI_DSI_PROBE_IO, 1);
+#endif
 
                 DW_GDMA.ch[1].sar0 = (uint32_t)dsi_dma_buf;
                 DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
 
-                // dsi_frame_cnt++;
-                // gpio_probe(MIPI_DSI_PROBE_IO, 0);
+#if MIPI_DSI_PROBE_IO >= 0
+                if (++dsi_frame_cnt == MIPI_FRAME_PROBE_COUNT) {
+                    dsi_frame_cnt = 0;
+                }
+                gpio_set_level(MIPI_DSI_PROBE_IO, 0);
+#endif
             }
 
             // Clear all interrupt of ch1
@@ -113,7 +133,7 @@ static esp_err_t dw_gdma_common_init(void)
 
     dw_gdma_initialized = true;
 
-    ESP_LOGI(TAG, "DW_GDMA common initialization done.");
+    printf("DW_GDMA common initialization done.\n");
 
     return ESP_OK;
 }
@@ -127,6 +147,8 @@ esp_err_t dw_gdma_mipi_dsi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
 
     uint32_t block_ts = buffer_size * 8 / tr_width;
     dsi_dma_buf = buffer;
+
+    printf("buffer: %p, buffer_size: %d, tr_width: %d, block_ts: %d\n", buffer, buffer_size, tr_width, block_ts);
 
     DW_GDMA.ch[1].int_st_ena0.val = 0x0;
     DW_GDMA.ch[1].int_sig_ena0.val = 0x0;
@@ -163,7 +185,7 @@ esp_err_t dw_gdma_mipi_dsi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
     DW_GDMA.ch[1].ctl1.awlen = 16;
     DW_GDMA.ch[1].ctl1.awlen_en = 1;
 
-    ESP_LOGI(TAG, "DW_GDMA mipi-dsi initialization done.");
+    printf("DW_GDMA mipi-dsi initialization done.\n");
 
     return ESP_OK;
 }
@@ -177,6 +199,8 @@ esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
 
     uint32_t block_ts = buffer_size * 8 / tr_width;
     csi_dma_buf = buffer;
+
+    printf("buffer: %p, buffer_size: %d, tr_width: %d, block_ts: %d\n", buffer, buffer_size, tr_width, block_ts);
 
     DW_GDMA.ch[0].int_st_ena0.val = 0x0;
     DW_GDMA.ch[0].int_sig_ena0.val = 0x0;
@@ -214,7 +238,7 @@ esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
     DW_GDMA.ch[0].ctl1.awlen = 16;
     DW_GDMA.ch[0].ctl1.awlen_en = 1;
 
-    ESP_LOGI(TAG, "DW_GDMA mipi-csi initialization done.");
+    printf("DW_GDMA mipi-csi initialization done.\n");
 
     return ESP_OK;
 }
@@ -229,11 +253,16 @@ esp_err_t dw_gdma_mipi_dsi_start(void)
                             "Allocate DW_GDMA interrupt failed");
     }
 
+#if MIPI_DSI_PROBE_IO >= 0
+    gpio_set_direction(MIPI_DSI_PROBE_IO, GPIO_MODE_OUTPUT);
+    gpio_set_level(MIPI_DSI_PROBE_IO, 0);
+#endif
+
     DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
 
     vTaskDelay(pdMS_TO_TICKS(1));
 
-    ESP_LOGI(TAG, "DW_GDMA mipi-dsi start.");
+    printf("DW_GDMA mipi-dsi start.\n");
 
     return ESP_OK;
 }
@@ -248,11 +277,26 @@ esp_err_t dw_gdma_mipi_csi_start(void)
                             "Allocate DW_GDMA interrupt failed");
     }
 
+#if MIPI_CSI_PROBE_IO >= 0
+    gpio_set_direction(MIPI_CSI_PROBE_IO, GPIO_MODE_OUTPUT);
+    gpio_set_level(MIPI_CSI_PROBE_IO, 0);
+#endif
+
     DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x101);
 
     vTaskDelay(pdMS_TO_TICKS(1));
 
-    ESP_LOGI(TAG, "DW_GDMA mipi-csi start.");
+    printf("DW_GDMA mipi-csi start.\n");
 
     return ESP_OK;
+}
+
+uint32_t dw_gdma_mipi_dsi_get_frame_count(void)
+{
+    return dsi_frame_cnt;
+}
+
+uint32_t dw_gdma_mipi_csi_get_frame_count(void)
+{
+    return csi_frame_cnt;
 }
