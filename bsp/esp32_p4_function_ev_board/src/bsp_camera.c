@@ -79,3 +79,9 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
 
     return ESP_OK;
 }
+
+esp_err_t bsp_camera_del(void)
+{
+
+    return ESP_OK;
+}

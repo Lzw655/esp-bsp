@@ -729,13 +729,13 @@ static void mipi_task(void *arg)
     DMA2D.out_ch[0].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[0].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[0].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x3;
+    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x4;
     DMA2D.out_ch[0].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.in_ch0.conf0.in_mem_trans_en = 0x0;
     DMA2D.in_ch0.conf0.in_dscr_port_en = 0x1;
     DMA2D.in_ch0.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x3;
+    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x4;
     DMA2D.in_ch0.conf0.indscr_burst_en = 0x1;
 
     // dscr addr
@@ -760,19 +760,19 @@ static void mipi_task(void *arg)
     DMA2D.out_ch[1].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[1].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[1].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x3;
+    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x4;
     DMA2D.out_ch[1].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.out_ch[2].conf0.out_dscr_port_en = 0x0;
     DMA2D.out_ch[2].conf0.out_auto_wrback = 0x0;
     DMA2D.out_ch[2].conf0.out_eof_mode = 0x0;
     DMA2D.out_ch[2].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x3;
+    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x4;
     DMA2D.out_ch[2].conf0.outdscr_burst_en = 0x1;
 
     DMA2D.in_ch1.conf0.in_dscr_port_en = 0x0;
     DMA2D.in_ch1.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x3;
+    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x4;
     DMA2D.in_ch1.conf0.indscr_burst_en = 0x1;
 
     // dscr addr

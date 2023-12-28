@@ -118,7 +118,7 @@ esp_err_t bsp_extra_codec_init();
  *      - ESP_OK: Success
  *      - Others: Fail
  */
-esp_err_t bsp_extra_player_init(char *path);
+esp_err_t bsp_extra_player_init(const char *path);
 
 /**
  * @brief Get file_iterator instance.

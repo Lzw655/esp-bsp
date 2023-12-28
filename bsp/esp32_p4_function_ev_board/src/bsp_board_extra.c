@@ -187,7 +187,7 @@ static void play_index(int index)
     }
 }
 
-esp_err_t bsp_extra_player_init(char *path)
+esp_err_t bsp_extra_player_init(const char *path)
 {
     if (path) {
         file_iterator = file_iterator_new(path);

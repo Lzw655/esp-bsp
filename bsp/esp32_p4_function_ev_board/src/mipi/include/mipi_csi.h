@@ -12,7 +12,7 @@
 #include "isp_struct.h"
 
 #define MIPI_CSI_IMAGE_HSIZE           800
-#define MIPI_CSI_IMAGE_VSIZE           960
+#define MIPI_CSI_IMAGE_VSIZE           900
 // #define MIPI_CSI_IMAGE_VSIZE           (1280 / 2)
 // #define MIPI_CSI_IMAGE_VSIZE           0
 

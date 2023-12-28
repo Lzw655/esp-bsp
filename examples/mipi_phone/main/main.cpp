@@ -8,9 +8,10 @@
 #include "lvgl.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
-#include "bsp/camera.h"
 #include "bsp/display.h"
 #include "bsp_lcd.h"
+
+#include "mipi_csi.h"
 #include "dw_gdma.h"
 #include "ESP_UI.h"
 #include "apps.h"
@@ -36,74 +37,36 @@ extern "C" void app_main(void)
 
     ESP_ERROR_CHECK(bsp_extra_codec_init());
 #if CONFIG_EXAMPLE_USE_SD_CARD
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT"/music"));
+    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT "/music"));
 #else
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT"/music"));
+    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT "/music"));
 #endif
 
-    size_t frame_buffer_size = MIPI_DSI_DISP_HSIZE * 960 * sizeof(lv_color_t);
-    uint8_t *frame_buffer = (uint8_t *)heap_caps_aligned_alloc(64, frame_buffer_size, MALLOC_CAP_SPIRAM);
-    assert(frame_buffer != NULL);
-
-    bsp_camera_config_t camera_cfg = {
-        .hor_res = MIPI_DSI_DISP_HSIZE,
-        .ver_res = 960,
-        .buffer_ptr = (void **)&frame_buffer,
-        .buffer_size_ptr = &frame_buffer_size,
-    };
-    ESP_ERROR_CHECK(bsp_camera_new(&camera_cfg));
-
     bsp_display_start();
+
     bsp_display_lock(0);
 
-    static lv_img_dsc_t img_dsc = {
-        .header = {
-            .cf = LV_IMG_CF_TRUE_COLOR,
-            .always_zero = 0,
-            .reserved = 0,
-            .w = camera_cfg.hor_res,
-            .h = camera_cfg.ver_res,
-        },
-        .data_size = frame_buffer_size,
-        .data = (const uint8_t *)frame_buffer,
-    };
-    lv_obj_t *img = lv_img_create(lv_scr_act());
-    lv_img_set_src(img, &img_dsc);
+    ESP_UI *eui = new ESP_UI();
+    assert(eui != NULL);
 
-    lv_obj_t *btn = lv_btn_create(lv_scr_act());
-    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, 0);
+    MusicPlayer *music_player = new MusicPlayer();
+    Camera *camera = new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0);
 
-    // ESP_UI *eui = new ESP_UI();
-    // assert(eui != NULL);
-
-    // MusicPlayer *music_player = new MusicPlayer();
-
-    // eui->init();
-    // eui->data()->data.home.app_table.screen_num = 1;
-    // eui->data()->data.home.app_table.screen_show_default = 0;
-    // // eui->data()->data.enable_disp_wallpaper = false;
+    eui->init();
+    eui->data()->data.home.app_table.screen_num = 1;
+    eui->data()->data.home.app_table.screen_show_default = 0;
+    // eui->data()->data.enable_disp_wallpaper = false;
     // eui->data()->data.disp_background_color = lv_color_hex(0x0091ff);
-    // // eui->enableDebugMode();
-    // eui->enableGesture(bsp_display_get_input_dev());
-    // eui->begin();
-    // eui->installApp(*music_player);
+    eui->data()->data.home.app_table.main_text_color = lv_color_white();
+    // eui->enableDebugMode();
+    eui->enableGesture(bsp_display_get_input_dev());
+    eui->begin();
     // eui->printFormatData();
 
+    eui->installApp(*music_player);
+    eui->installApp(*camera);
+
     bsp_display_unlock();
-
-    // void *frame_buffer = NULL;
-    // size_t frame_buffer_size = MIPI_DSI_DISP_BUF_SIZE / 2;
-    // // size_t frame_buffer_size = 0;
-    // ESP_ERROR_CHECK(bsp_display_new(NULL, NULL, NULL));
-    // ESP_ERROR_CHECK(bsp_lcd_get_frame_buffer(1, &frame_buffer));
-
-    // bsp_camera_config_t camera_cfg = {
-    //     .hor_res = MIPI_DSI_DISP_HSIZE,
-    //     .ver_res = MIPI_DSI_DISP_VSIZE / 2,
-    //     .buffer_ptr = (void **)&frame_buffer,
-    //     .buffer_size_ptr = &frame_buffer_size,
-    // };
-    // ESP_ERROR_CHECK(bsp_camera_new(&camera_cfg));
 
     while (1) {
 #if LOG_MEM_INFO
@@ -124,10 +87,6 @@ extern "C" void app_main(void)
                 heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
         ESP_LOGI("MEM", "%s", buffer);
 #endif
-
-    bsp_display_lock(0);
-    lv_obj_invalidate(img);
-    bsp_display_unlock();
 
 #if LOG_MIPI_FRAME
         ESP_LOGI(TAG, "DSI: %d, CSI: %d", dw_gdma_mipi_dsi_get_frame_count(), dw_gdma_mipi_csi_get_frame_count());
