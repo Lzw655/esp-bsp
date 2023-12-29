@@ -12,7 +12,7 @@ extern "C" {
 
     #include "lvgl.h"
 
-#include "app/ui_helpers/ui_helpers.h"
+#include "squareline/ui_helpers.h"
 #include "ui_events.h"
 // SCREEN: ui_ScreenCameraShot
 void ui_ScreenCameraShot_screen_init(void);

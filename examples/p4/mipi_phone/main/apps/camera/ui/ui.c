@@ -4,7 +4,7 @@
 // Project name: Camera
 
 #include "ui.h"
-#include "app/ui_helpers/ui_helpers.h"
+#include "squareline/ui_helpers.h"
 
 ///////////////////// VARIABLES ////////////////////
 

@@ -11,14 +11,15 @@
 #include "bsp/display.h"
 #include "bsp_lcd.h"
 
+#include "ESP_UI.h"
+#include "ESP_UI_APP.h"
 #include "mipi_csi.h"
 #include "dw_gdma.h"
-#include "ESP_UI.h"
 #include "apps.h"
 
 #define LOG_MEM_INFO            (0)
 #define LOG_MIPI_FRAME          (0)
-#define LOG_TIME_INTERVAL_MS    (30)
+#define LOG_TIME_INTERVAL_MS    (10000)
 
 static const char *TAG = "main";
 
@@ -34,13 +35,7 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(bsp_spiffs_mount());
     ESP_LOGI(TAG, "SPIFFS mount successfully");
 #endif
-
     ESP_ERROR_CHECK(bsp_extra_codec_init());
-#if CONFIG_EXAMPLE_USE_SD_CARD
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT "/music"));
-#else
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT "/music"));
-#endif
 
     bsp_display_start();
 
@@ -48,9 +43,6 @@ extern "C" void app_main(void)
 
     ESP_UI *eui = new ESP_UI();
     assert(eui != NULL);
-
-    MusicPlayer *music_player = new MusicPlayer();
-    Camera *camera = new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0);
 
     eui->init();
     eui->data()->data.home.app_table.screen_num = 1;
@@ -63,8 +55,10 @@ extern "C" void app_main(void)
     eui->begin();
     // eui->printFormatData();
 
-    eui->installApp(*music_player);
-    eui->installApp(*camera);
+    eui->installApp(new LVGLDemos());
+    eui->installApp(new SmartGadget());
+    eui->installApp(new MusicPlayer());
+    eui->installApp(new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0));
 
     bsp_display_unlock();
 

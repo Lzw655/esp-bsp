@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "sdkconfig.h"
+#include "bsp/esp-bsp.h"
+#include "bsp/bsp_board_extra.h"
 #include "gui_music/lv_example_pub.h"
 #include "gui_music/lv_demo_music.h"
 
@@ -46,5 +49,11 @@ void MusicPlayer::close(void)
 
 void MusicPlayer::init(void)
 {
+#if CONFIG_EXAMPLE_USE_SD_CARD
+    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT "/music"));
+#else
+    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT "/music"));
+#endif
+
     _status_icon_vector.push_back(&img_music_player_icon);
 }
