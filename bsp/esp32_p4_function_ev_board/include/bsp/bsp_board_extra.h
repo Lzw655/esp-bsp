@@ -11,6 +11,7 @@
 #include "driver/gpio.h"
 #include "driver/i2s_std.h"
 
+#include "audio_player.h"
 #include "file_iterator.h"
 
 #ifdef __cplusplus
@@ -126,6 +127,11 @@ esp_err_t bsp_extra_player_init(const char *path);
  * @return pointer of file_iterator_instance_t
  */
 file_iterator_instance_t *bsp_extra_get_file_instance(void);
+
+void bsp_extra_player_play_index(int index);
+
+void __attribute__((weak)) bsp_extra_audio_idle_event_callback(audio_player_cb_ctx_t *ctx);
+void __attribute__((weak)) bsp_extra_audio_playing_event_callback(audio_player_cb_ctx_t *ctx);
 
 #ifdef __cplusplus
 }

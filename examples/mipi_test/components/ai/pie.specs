@@ -1,3 +1,0 @@
-%rename cpp old_cpp
-*cpp:
--include pie_asm.h %(old_cpp)

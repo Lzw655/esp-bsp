@@ -10,7 +10,6 @@
 #include "esp_log.h"
 #include "esp_check.h"
 
-#include "audio_player.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
 
@@ -47,17 +46,29 @@ static esp_err_t audio_mute_function(AUDIO_PLAYER_MUTE_SETTING setting)
     return ESP_OK;
 }
 
+void __attribute__((weak)) bsp_extra_audio_idle_event_callback(audio_player_cb_ctx_t *ctx)
+{
+    (void)ctx;
+}
+
+void __attribute__((weak)) bsp_extra_audio_playing_event_callback(audio_player_cb_ctx_t *ctx)
+{
+    (void)ctx;
+}
+
 static void audio_callback(audio_player_cb_ctx_t *ctx)
 {
     switch (ctx->audio_event) {
     case AUDIO_PLAYER_CALLBACK_EVENT_IDLE: /**< Player is idle, not playing audio */
         ESP_LOGI(TAG, "IDLE");
+        bsp_extra_audio_idle_event_callback(ctx);
         break;
     case AUDIO_PLAYER_CALLBACK_EVENT_COMPLETED_PLAYING_NEXT:
         ESP_LOGI(TAG, "NEXT");
         break;
     case AUDIO_PLAYER_CALLBACK_EVENT_PLAYING:
         ESP_LOGI(TAG, "PLAYING");
+        bsp_extra_audio_playing_event_callback(ctx);
         break;
     case AUDIO_PLAYER_CALLBACK_EVENT_PAUSE:
         ESP_LOGI(TAG, "PAUSE");
@@ -164,7 +175,27 @@ esp_err_t bsp_extra_codec_init()
     return ESP_OK;
 }
 
-static void play_index(int index)
+esp_err_t bsp_extra_player_init(const char *path)
+{
+    if (path) {
+        file_iterator = file_iterator_new(path);
+        ESP_ERROR_CHECK(file_iterator == NULL ? ESP_FAIL : ESP_OK);
+    }
+
+    audio_player_config_t config = { .mute_fn = audio_mute_function,
+                                     .write_fn = bsp_extra_i2s_write,
+                                     .clk_set_fn = bsp_extra_codec_set_fs,
+                                     .priority = 5
+                                   };
+    ESP_ERROR_CHECK(audio_player_new(config));
+    audio_player_callback_register(audio_callback, NULL);
+
+    // play_index(0);
+
+    return ESP_OK;
+}
+
+void bsp_extra_player_play_index(int index)
 {
     ESP_LOGI(TAG, "play_index(%d)", index);
 
@@ -185,24 +216,4 @@ static void play_index(int index)
     } else {
         ESP_LOGE(TAG, "unable to open index %d, filename '%s'", index, filename);
     }
-}
-
-esp_err_t bsp_extra_player_init(const char *path)
-{
-    if (path) {
-        file_iterator = file_iterator_new(path);
-        ESP_ERROR_CHECK(file_iterator == NULL ? ESP_FAIL : ESP_OK);
-    }
-
-    audio_player_config_t config = { .mute_fn = audio_mute_function,
-                                     .write_fn = bsp_extra_i2s_write,
-                                     .clk_set_fn = bsp_extra_codec_set_fs,
-                                     .priority = 5
-                                   };
-    ESP_ERROR_CHECK(audio_player_new(config));
-    audio_player_callback_register(audio_callback, NULL);
-
-    // play_index(0);
-
-    return ESP_OK;
 }

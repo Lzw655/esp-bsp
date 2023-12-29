@@ -1,8 +1,6 @@
 exclude: |
     (?x)^(
-        examples/mipi_phone/.*|
-        examples/mipi_phone_fib/.*|
-        examples/mipi_test/.*
+        examples/p4/.*
     )$
 repos:
 -   repo: https://github.com/igrr/astyle_py.git
