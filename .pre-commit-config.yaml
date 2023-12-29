@@ -1,6 +1,7 @@
 exclude: |
     (?x)^(
         examples/mipi_phone/.*|
+        examples/mipi_phone_fib/.*|
         examples/mipi_test/.*
     )$
 repos:
