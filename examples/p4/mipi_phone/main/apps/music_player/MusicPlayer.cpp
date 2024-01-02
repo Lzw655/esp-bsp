@@ -16,15 +16,15 @@ using namespace std;
 
 LV_IMG_DECLARE(img_music_player_icon);
 
-MusicPlayer::MusicPlayer():
+MusicPlayer::MusicPlayer(bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Music Player",         // name
         0,                      // app_table_index
-        true,                  // enable_resource_recycle
+        true,                   // enable_resource_recycle
         true,                   // use_scr_act
-        false,                  // use_statusbar
-        false,                  // use_navigation
-        &img_music_player_icon)  // icon
+        use_statusbar,          // use_statusbar
+        use_navigation,         // use_navigation
+        &img_music_player_icon) // icon
 {
 }
 

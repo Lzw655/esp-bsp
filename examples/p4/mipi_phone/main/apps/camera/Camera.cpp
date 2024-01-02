@@ -19,15 +19,15 @@ static const char *TAG = "Camera";
 
 LV_IMG_DECLARE(img_camera_icon);
 
-Camera::Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz):
+Camera::Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz, bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Camera",               // name
         0,                      // app_table_index
-        true,                  // enable_resource_recycle
-        false,                   // use_scr_act
-        false,                  // use_statusbar
-        true,                  // use_navigation
-        &img_camera_icon),  // icon
+        true,                   // enable_resource_recycle
+        false,                  // use_scr_act
+        use_statusbar,          // use_statusbar
+        use_navigation,         // use_navigation
+        &img_camera_icon),      // icon
         _screen_index(SCREEN_CAMERA_SHOT),
         _hor_res(hor_res),
         _ver_res(ver_res),

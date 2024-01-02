@@ -10,7 +10,7 @@
 
 class MusicPlayer: public ESP_UiApp {
 public:
-    MusicPlayer();
+    MusicPlayer(bool use_statusbar = false, bool use_navigation = false);
     ~MusicPlayer();
 
     void run(void);

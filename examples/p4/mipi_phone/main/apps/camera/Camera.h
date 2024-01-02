@@ -10,7 +10,7 @@
 
 class Camera: public ESP_UiApp {
 public:
-    Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz);
+    Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz, bool use_statusbar = false, bool use_navigation = false);
     ~Camera();
 
     void run(void);
