@@ -1,10 +1,6 @@
-set(APPS_DIR apps/)
-file(GLOB_RECURSE APPS_C_SRCS ${APPS_DIR}/*.c)
-file(GLOB_RECURSE APPS_CPP_SRCS ${APPS_DIR}/*.cpp)
-
 idf_component_register(
-    SRCS main.cpp ${APPS_C_SRCS} ${APPS_CPP_SRCS}
-    INCLUDE_DIRS . ${APPS_DIR})
+    SRCS main.cpp
+    INCLUDE_DIRS .)
 
 target_compile_options(
     ${COMPONENT_LIB}

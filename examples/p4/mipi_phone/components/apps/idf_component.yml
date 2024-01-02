@@ -1,0 +1,12 @@
+## IDF Component Manager Manifest File
+version: "0.0.1"
+dependencies:
+  ESP32_UI:
+    version: test_add_apps
+    git: "https://github.com/esp-arduino-libs/ESP32_UI.git"
+    public: true
+
+  ESP32_UI_APP:
+    version: master
+    git: "https://github.com/esp-arduino-libs/ESP32_UI_APP.git"
+    public: true

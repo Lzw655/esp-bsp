@@ -79,7 +79,49 @@ menu "Board Support Package"
                 Mount point of the SD card in the Virtual File System
     endmenu
 
+    menu "LCD DSI"
+        config LCD_DSI_ENABLE_DEBUG_LOG
+            bool "Enable debug log"
+            default y
+            help
+                Wether to enable the debug log message for LCD driver.
+                Note that, this option only controls the LCD driver log, won't affect other drivers.
+
+        config LCD_DSI_ISR_IRAM_SAFE
+            bool "DSI LCD ISR IRAM-Safe"
+            default n
+            help
+                Ensure the LCD interrupt is IRAM-Safe by allowing the interrupt handler to be
+                executable when the cache is disabled (e.g. SPI Flash write).
+                If you want the LCD driver to keep flushing the screen even when cache ops disabled,
+                you can enable this option. Note, this will also increase the IRAM usage.
+    endmenu
+
     menu "Display"
+        config BSP_DISPLAY_LCD_BUFFER_NUMS
+            int "Set number of frame buffers"
+            default 1
+            range 1 3
+            help
+                Let RGB LCD driver create a specified number of frame-size buffers. Only when it is set to multiple can the avoiding tearing be turned on.
+
+        config BSP_DISPLAY_LVGL_AVOID_TEAR
+            bool "Avoid tearing effect"
+            depends on BSP_DISPLAY_LCD_BUFFER_NUMS > 1
+            default "n"
+            help
+                Avoid tearing effect through LVGL buffer mode and double frame buffers of RGB LCD. This feature is only available for RGB LCD.
+
+        choice BSP_DISPLAY_LVGL_MODE
+            depends on BSP_DISPLAY_LVGL_AVOID_TEAR
+            prompt "Select LVGL buffer mode"
+            default BSP_DISPLAY_LVGL_FULL_REFRESH
+            config BSP_DISPLAY_LVGL_FULL_REFRESH
+                bool "Full refresh"
+            config BSP_DISPLAY_LVGL_DIRECT_MODE
+                bool "Direct mode"
+        endchoice
+
         config BSP_DISPLAY_LVGL_TASK_PRIORITY
             int "LVGL task priority"
             default 2
@@ -116,7 +158,7 @@ menu "Board Support Package"
         choice BSP_DISPLAY_LVGL_BUF_CAPS
             depends on !BSP_DISPLAY_LVGL_AVOID_TEAR
             prompt "Select LVGL buffer memory capability"
-            default BSP_DISPLAY_LVGL_INTERNAL
+            default BSP_DISPLAY_LVGL_PSRAM
             config BSP_DISPLAY_LVGL_PSRAM
                 bool "PSRAM memory"
             config BSP_DISPLAY_LVGL_INTERNAL

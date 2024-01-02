@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -13,18 +13,20 @@
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
 
-static const char *TAG = "bsp_extra_board";
-
 #define CODEC_DEFAULT_SAMPLE_RATE          (16000)
 #define CODEC_DEFAULT_BIT_WIDTH            (16)
 #define CODEC_DEFAULT_ADC_VOLUME           (24.0)
 #define CODEC_DEFAULT_CHANNEL              (2)
-#define CODEC_DEFAULT_VOLUME               (60)
+#define CODEC_DEFAULT_VOLUME               (40)
+
+static const char *TAG = "bsp_extra_board";
 
 static esp_codec_dev_handle_t play_dev_handle;
 static esp_codec_dev_handle_t record_dev_handle;
 
 static file_iterator_instance_t *file_iterator;
+
+static int _vloume_intensity = CODEC_DEFAULT_VOLUME;
 
 file_iterator_instance_t *bsp_extra_get_file_instance(void)
 {
@@ -40,7 +42,7 @@ static esp_err_t audio_mute_function(AUDIO_PLAYER_MUTE_SETTING setting)
 
     // restore the voice volume upon unmuting
     if (setting == AUDIO_PLAYER_UNMUTE) {
-        bsp_extra_codec_volume_set(CODEC_DEFAULT_VOLUME, NULL);
+        ESP_RETURN_ON_ERROR(esp_codec_dev_set_out_vol(play_dev_handle, _vloume_intensity), TAG, "Set Codec volume failed");
     }
 
     return ESP_OK;
@@ -130,10 +132,17 @@ esp_err_t bsp_extra_codec_set_fs(uint32_t rate, uint32_t bits_cfg, i2s_slot_mode
 
 esp_err_t bsp_extra_codec_volume_set(int volume, int *volume_set)
 {
-    esp_err_t ret = ESP_OK;
-    float v = volume;
-    ret = esp_codec_dev_set_out_vol(play_dev_handle, (int)v);
-    return ret;
+    ESP_RETURN_ON_ERROR(esp_codec_dev_set_out_vol(play_dev_handle, volume), TAG, "Set Codec volume failed");
+    _vloume_intensity = volume;
+
+    ESP_LOGI(TAG, "Setting volume: %d", volume);
+
+    return ESP_OK;
+}
+
+int bsp_extra_codec_volume_get(void)
+{
+    return _vloume_intensity;
 }
 
 esp_err_t bsp_extra_codec_mute_set(bool enable)

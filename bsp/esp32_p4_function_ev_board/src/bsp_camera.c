@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: CC0-1.0
  */
@@ -25,6 +25,9 @@
 #define GDMA_BUFFER_MASTER      (1)
 
 static const char *TAG = "bsp_camera";
+static bsp_camera_trans_done_cb_t trans_done = NULL;
+
+static void csi_on_vsync_event(void *arg);
 
 esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
 {
@@ -77,6 +80,24 @@ esp_err_t bsp_camera_new(const bsp_camera_config_t *config)
     ESP_RETURN_ON_ERROR(sensor_ov5647_init(), TAG, "Initialize OV5647 failed");
 #endif
 
+    dw_gdma_mipi_csi_register_callback(csi_on_vsync_event, NULL);
+
+    return ESP_OK;
+}
+
+esp_err_t bsp_camera_register_trans_done_callback(bsp_camera_trans_done_cb_t callback)
+{
+    trans_done = callback;
+
+    return ESP_OK;
+}
+
+esp_err_t bsp_camera_set_frame_buffer(void *buffer)
+{
+    ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_INVALID_ARG, TAG, "Invalid buffer_ptr");
+
+    dw_gdma_mipi_csi_set_buffer(buffer);
+
     return ESP_OK;
 }
 
@@ -84,4 +105,18 @@ esp_err_t bsp_camera_del(void)
 {
 
     return ESP_OK;
+}
+
+IRAM_ATTR static void csi_on_vsync_event(void *arg)
+{
+    BaseType_t need_yield = pdFALSE;
+    if (trans_done) {
+        if (trans_done()) {
+            need_yield = pdTRUE;
+        }
+    }
+
+    if (need_yield) {
+        portYIELD_FROM_ISR();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -26,6 +26,7 @@
 #include "bsp/touch.h"
 #include "bsp/esp32_p4_function_ev_board.h"
 #include "bsp_err_check.h"
+#include "driver/ledc.h"
 
 #define BSP_ES7210_CODEC_ADDR   (0x82)
 
@@ -52,7 +53,7 @@
         .gpio_cfg = BSP_I2S_GPIO_CFG,                                                                 \
     }
 
-#define USE_I2S_RX_CHAN     (1)
+#define USE_I2S_RX_CHAN     (0)
 
 static const char *TAG = "P4-FUNCTION-EV-BOARD";
 
@@ -64,6 +65,7 @@ static i2s_chan_handle_t i2s_rx_chan = NULL;
 #endif
 static lv_indev_t *disp_indev = NULL;
 static sdmmc_card_t *bsp_sdcard = NULL;    // Global SD card handler
+static int lcd_brightness = 0;
 
 /**************************************************************************************************
  *
@@ -374,6 +376,84 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void)
  * Display Function
  *
  **********************************************************************************************************/
+static esp_err_t bsp_display_brightness_init(void)
+{
+    if (BSP_LCD_BACKLIGHT < 0) {
+        ESP_LOGW(TAG, "LCD backlight control is not supported on this board");
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    // Setup LEDC peripheral for PWM backlight control
+    const ledc_channel_config_t LCD_backlight_channel = {
+        .gpio_num = BSP_LCD_BACKLIGHT,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = LCD_LEDC_CH,
+        .intr_type = LEDC_INTR_DISABLE,
+        .timer_sel = 1,
+        .duty = 0,
+        .hpoint = 0
+    };
+    const ledc_timer_config_t LCD_backlight_timer = {
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .duty_resolution = LEDC_TIMER_10_BIT,
+        .timer_num = 1,
+        .freq_hz = 1000,
+        .clk_cfg = LEDC_AUTO_CLK
+    };
+
+    BSP_ERROR_CHECK_RETURN_ERR(ledc_timer_config(&LCD_backlight_timer));
+    BSP_ERROR_CHECK_RETURN_ERR(ledc_channel_config(&LCD_backlight_channel));
+
+    return ESP_OK;
+}
+
+esp_err_t bsp_display_brightness_set(int brightness_percent)
+{
+    if (BSP_LCD_BACKLIGHT < 0) {
+        ESP_LOGW(TAG, "LCD backlight control is not supported on this board");
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    if (brightness_percent == lcd_brightness) {
+        return ESP_OK;
+    }
+
+    if (brightness_percent > 100) {
+        brightness_percent = 100;
+    }
+    if (brightness_percent < 0) {
+        brightness_percent = 0;
+    }
+
+    ESP_LOGI(TAG, "Setting LCD backlight: %d%%", brightness_percent);
+    uint32_t duty_cycle = (1023 * brightness_percent) / 100; // LEDC resolution set to 10bits, thus: 100% = 1023
+    BSP_ERROR_CHECK_RETURN_ERR(ledc_set_duty(LEDC_LOW_SPEED_MODE, LCD_LEDC_CH, duty_cycle));
+    BSP_ERROR_CHECK_RETURN_ERR(ledc_update_duty(LEDC_LOW_SPEED_MODE, LCD_LEDC_CH));
+    lcd_brightness = brightness_percent;
+
+    return ESP_OK;
+}
+
+int bsp_display_brightness_get(void)
+{
+    if (BSP_LCD_BACKLIGHT < 0) {
+        ESP_LOGW(TAG, "LCD backlight control is not supported on this board");
+        return 100;
+    }
+
+    return lcd_brightness;
+}
+
+esp_err_t bsp_display_backlight_off(void)
+{
+    return bsp_display_brightness_set(0);
+}
+
+esp_err_t bsp_display_backlight_on(void)
+{
+    return bsp_display_brightness_set(100);
+}
+
 lv_disp_t *bsp_display_start(void)
 {
     return bsp_display_start_with_config(NULL);
@@ -390,6 +470,7 @@ lv_disp_t *bsp_display_start_with_config(const bsp_display_cfg_t *cfg)
     BSP_ERROR_CHECK_RETURN_NULL(bsp_display_new(&disp_config, &lcd, NULL));
     BSP_ERROR_CHECK_RETURN_NULL(bsp_touch_new(NULL, &tp));
     BSP_ERROR_CHECK_RETURN_NULL(bsp_lvgl_port_init(lcd, tp, &disp, &disp_indev));
+    bsp_display_brightness_init();
 
     return disp;
 }
@@ -397,22 +478,6 @@ lv_disp_t *bsp_display_start_with_config(const bsp_display_cfg_t *cfg)
 lv_indev_t *bsp_display_get_input_dev(void)
 {
     return disp_indev;
-}
-
-esp_err_t bsp_display_brightness_set(int brightness_percent)
-{
-    ESP_LOGW(TAG, "This board doesn't support to change brightness of LCD");
-    return ESP_ERR_NOT_SUPPORTED;
-}
-
-esp_err_t bsp_display_backlight_off(void)
-{
-    return bsp_display_brightness_set(0);
-}
-
-esp_err_t bsp_display_backlight_on(void)
-{
-    return bsp_display_brightness_set(100);
 }
 
 bool bsp_display_lock(uint32_t timeout_ms)

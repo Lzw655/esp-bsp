@@ -6,16 +6,26 @@ dependencies:
     public: true
     version: ^1
 
-  lvgl/lvgl:
-    version: "^8"
-    public: true
+  # lvgl/lvgl:
+  #   version: "^8"
+  #   public: true
+
+  # lvgl:
+  #   version: release/v8.3
+  #   git: https://github.com/lvgl/lvgl.git
+  #   public: true
 
   esp_lcd_touch_gt911:
     version: "^1"
     public: true
 
-  chmorgan/esp-audio-player: "1.0.*"
-  chmorgan/esp-file-iterator: "1.0.0"
+  chmorgan/esp-audio-player:
+    version: "1.0.*"
+    public: true
+
+  chmorgan/esp-file-iterator:
+    version: "1.0.0"
+    public: true
 
 description: Board Support Package for ESP32-P4-Function-ev-board
 targets:
