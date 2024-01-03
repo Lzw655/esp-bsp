@@ -20,7 +20,10 @@
 #include "esp_attr.h"
 #include "esp_check.h"
 #include "esp_lcd_panel_ops.h"
+#include "esp_lcd_panel_interface.h"
 #include "esp_intr_alloc.h"
+#include "esp_psram.h"
+#include "esp_cache.h"
 #include "soc/soc_caps.h"
 #include "rom/cache.h"
 
@@ -29,9 +32,8 @@
 #include "mipi_dsi.h"
 #include "bsp_lcd.h"
 #include "dw_gdma.h"
-#include "esp_lcd_ili9806.h"
 
-#define TEST_DISP_PATTERN               (0)
+#include "esp_lcd_panel_dsi.h"
 
 #define DSI_LCD_PANEL_MAX_FB_NUM         3 // maximum supported frame buffer number
 
@@ -67,7 +69,7 @@ struct esp_dsi_panel_t {
     size_t fb_bits_per_pixel; // Frame buffer color depth, in bpp
     size_t sram_trans_align;      /*!< Alignment of buffers (frame buffer or bounce buffer) that allocated in SRAM */
     size_t psram_trans_align;     /*!< Alignment of buffers (frame buffer) that allocated in PSRAM */
-    esp_lcd_rgb_timing_t timings;   // RGB timing parameters (e.g. pclk, sync pulse, porch width)
+    esp_lcd_dsi_timing_t timings;   // RGB timing parameters (e.g. pclk, sync pulse, porch width)
     uint8_t *fbs[DSI_LCD_PANEL_MAX_FB_NUM]; // Frame buffers
     uint8_t cur_fb_index;  // Current frame buffer index
     size_t fb_size;        // Size of frame buffer
@@ -156,7 +158,66 @@ esp_err_t esp_lcd_new_dsi_panel(const esp_lcd_dsi_panel_config_t *dsi_panel_conf
     // allocate frame buffers + bounce buffers
     ESP_GOTO_ON_ERROR(lcd_dsi_panel_alloc_frame_buffers(dsi_panel_config, dsi_panel), err, TAG, "alloc frame buffers failed");
 
-    rgb_panel->timings = rgb_panel_config->timings;
+    mipi_dsi_timing_t dsi_timing = {
+        .dpi_hsa = dsi_panel_config->timings.hsync_sync_active,
+        .dpi_hbp = dsi_panel_config->timings.hsync_back_porch,
+        .dpi_hfp = dsi_panel_config->timings.hsync_front_porch,
+        .dpi_hact = dsi_panel_config->timings.h_res,
+        .dpi_vsa = dsi_panel_config->timings.vsync_sync_active,
+        .dpi_vbp = dsi_panel_config->timings.vsync_back_porch,
+        .dpi_vfp = dsi_panel_config->timings.vsync_front_porch,
+        .dpi_vact = dsi_panel_config->timings.v_res,
+        .dpi_clock_rate = dsi_panel_config->timings.dpi_clk_hz,
+        .dsi_line_rate = dsi_panel_config->timings.dsi_line_hz,
+        .dsi_line_num = dsi_panel_config->timings.dsi_line_num,
+    };
+    mipi_dsi_set_timing(&dsi_timing);
+    mipi_dsi_clock_init();
+    mipi_dsi_host_phy_init();
+
+    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_DMA2D_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_DMA2D_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DMA2D);
+    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DMA2D);
+
+    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_PPA_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_PPA_SYS_CLK_EN);
+    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_PPA);
+    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_PPA);
+
+    ESP_RETURN_ON_ERROR(dw_gdma_mipi_dsi_init(dsi_panel->fbs[0], dsi_panel->fb_size, dsi_panel->psram_trans_align), TAG,
+                        "Initialize GDMA for MIPI DSI failed");
+
+    mipi_dsi_bridge_init();
+
+    mipi_dsih_hal_gen_cmd_mode_en(1);
+
+#if !TEST_DSI_LOOPBACK
+    MIPI_DSI_HOST.lpclk_ctrl.val = 0x00000000 |
+                                   ((0 & 0x00000001) << 1) | // bit[    1] AUTO_CLKLANE_CTRL     = 0 (Automatic mechanism to stop providing clock in the clock lane when time allows.
+                                   ((0 & 0x00000001) << 0);  // bit[    0] TXREQUESTCLKHS        = 1 (Requesting High Speed Clock Transmission.
+    // MIPI_DSI_HOST.phy_ulps_ctrl.phy_txrequlpsclk = 1;
+
+#if TEST_DSI_ESCAPE_MODE
+    // 可以断开 clk lane, 观察data lane0 是否进入了escape mode
+    uint16_t data[128];
+
+    ESP_LOGI(TAG, "esacpe mode test");
+
+    for (int x = 0; x < 128; x++) {
+        data[x] = 0x001F;
+    }
+
+    for (int x = 0; x < 100; x++) {
+        // Memory write
+        mipi_dcs_write_data((uint8_t *)data, 128 * 2);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    mipi_dcs_write_cmd(0x29, 0); //Display ON
+#endif
+#endif
+
+    dsi_panel->timings = dsi_panel_config->timings;
     dsi_panel->fb_bits_per_pixel = fb_bits_per_pixel;
     // fill function table
     dsi_panel->base.del = dsi_panel_del;
@@ -171,10 +232,9 @@ esp_err_t esp_lcd_new_dsi_panel(const esp_lcd_dsi_panel_config_t *dsi_panel_conf
     // return base class
     *ret_panel = &(dsi_panel->base);
 
-    ESP_LOGD(TAG, "new dsi panel(%d) @%p, num_fbs=%zu, fb_size=%zu",
-             dsi_panel->panel_id, dsi_panel, dsi_panel->num_fbs, dsi_panel->fb_size);
+    ESP_LOGI(TAG, "new dsi panel @%p, num_fbs=%zu, fb_size=%zu", dsi_panel, dsi_panel->num_fbs, dsi_panel->fb_size);
     for (size_t i = 0; i < dsi_panel->num_fbs; i++) {
-        ESP_LOGD(TAG, "fb[%zu] @%p", i, dsi_panel->fbs[i]);
+        ESP_LOGI(TAG, "fb[%zu] @%p", i, dsi_panel->fbs[i]);
     }
     return ESP_OK;
 
@@ -223,8 +283,8 @@ esp_err_t esp_lcd_dsi_panel_get_frame_buffer(esp_lcd_panel_handle_t panel, uint3
 static esp_err_t dsi_panel_del(esp_lcd_panel_t *panel)
 {
     esp_dsi_panel_t *dsi_panel = __containerof(panel, esp_dsi_panel_t, base);
-    ESP_RETURN_ON_ERROR(lcd_dsi_panel_destory(dsi_panel), TAG, "destroy dsi panel(%d) failed", panel_id);
-    ESP_LOGD(TAG, "del dsi panel(%d)", panel_id);
+    ESP_LOGI(TAG, "del dsi panel @%p", panel);
+    ESP_RETURN_ON_ERROR(lcd_dsi_panel_destory(dsi_panel), TAG, "destroy dsi panel @%p failed", panel);
     return ESP_OK;
 }
 
@@ -238,62 +298,6 @@ static esp_err_t dsi_panel_init(esp_lcd_panel_t *panel)
 {
     esp_err_t ret = ESP_OK;
     esp_dsi_panel_t *dsi_panel = __containerof(panel, esp_dsi_panel_t, base);
-
-    mipi_dsi_clock_init();
-    mipi_dsi_host_phy_init();
-
-    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_DMA2D_SYS_CLK_EN);
-    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_DMA2D_SYS_CLK_EN);
-    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DMA2D);
-    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DMA2D);
-
-    REG_CLR_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_PPA_SYS_CLK_EN);
-    REG_SET_BIT(HP_SYS_CLKRST_SOC_CLK_CTRL1_REG, HP_SYS_CLKRST_REG_PPA_SYS_CLK_EN);
-    REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_PPA);
-    REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_PPA);
-
-    ESP_RETURN_ON_ERROR(dw_gdma_mipi_dsi_init(frame_buf[0], dsi_panel->timings.h_res, dsi_panel->timings.w_res), TAG,
-                        "Initialize GDMA for MIPI DSI failed");
-
-    mipi_dsi_bridge_init();
-
-    mipi_dsih_hal_gen_cmd_mode_en(1);
-
-#if !TEST_DSI_LOOPBACK
-    MIPI_DSI_HOST.lpclk_ctrl.val = 0x00000000 |
-                                   ((0 & 0x00000001) << 1) | // bit[    1] AUTO_CLKLANE_CTRL     = 0 (Automatic mechanism to stop providing clock in the clock lane when time allows.
-                                   ((0 & 0x00000001) << 0);  // bit[    0] TXREQUESTCLKHS        = 1 (Requesting High Speed Clock Transmission.
-    // MIPI_DSI_HOST.phy_ulps_ctrl.phy_txrequlpsclk = 1;
-
-    // RDDID: Read Display ID(DAH)
-    // This read byte returns 24-bit display identification information.
-    // The 1 parameter (ID1): the module’s manufacture ID.
-    // The 2 parameter (ID2): the module/driver version ID.
-    // The 3 parameter (ID3): the module/driver ID
-    uint8_t ID1, ID2, ID3;
-    mipi_dcs_read_cmd(0xDA, 3, &ID1, &ID2, &ID3);
-    ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x", ID1, ID2, ID3);
-
-    esp_lcd_new_panel_ili9806(NULL, NULL, NULL);
-
-#if TEST_DSI_ESCAPE_MODE
-    // 可以断开 clk lane, 观察data lane0 是否进入了escape mode
-    uint16_t data[128];
-
-    ESP_LOGI(TAG, "esacpe mode test");
-
-    for (int x = 0; x < 128; x++) {
-        data[x] = 0x001F;
-    }
-
-    for (int x = 0; x < 100; x++) {
-        // Memory write
-        mipi_dcs_write_data((uint8_t *)data, 128 * 2);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    mipi_dcs_write_cmd(0x29, 0); //Display ON
-#endif
-#endif
 
     // MIPI_DSI_HOST.phy_ulps_ctrl.phy_txexitulpsclk = 1;
     mipi_dsih_hal_gen_cmd_mode_en(0);
@@ -319,7 +323,7 @@ static esp_err_t dsi_panel_init(esp_lcd_panel_t *panel)
     }
 #endif
 
-    dw_gdma_mipi_dsi_register_callback(lcd_default_isr_handler);
+    dw_gdma_mipi_dsi_register_callback(lcd_default_isr_handler, dsi_panel);
 
     // Enable DW_GDMA CH-2 transfer.
     dw_gdma_mipi_dsi_start();
@@ -328,7 +332,9 @@ static esp_err_t dsi_panel_init(esp_lcd_panel_t *panel)
 
     mipi_dsi_bridge_start();
 
-    ESP_LOGD(TAG, "dsi panel(%d) start, pclk=%"PRIu32"Hz", dsi_panel->panel_id, dsi_panel->timings.pclk_hz);
+    ESP_LOGI(TAG, "dsi panel @%p start, dpipclk=%"PRIu32"Hz, dsirate=%"PRIu32"Hz", dsi_panel,
+             dsi_panel->timings.dpi_clk_hz, dsi_panel->timings.dsi_line_hz);
+
     return ret;
 }
 

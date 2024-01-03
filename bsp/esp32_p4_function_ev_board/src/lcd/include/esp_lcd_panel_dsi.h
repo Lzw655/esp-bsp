@@ -15,15 +15,17 @@ extern "C" {
 #endif
 
 typedef struct {
-    uint32_t pclk_hz;           /*!< Frequency of pixel clock */
+    uint32_t dpi_clk_hz;          /*!< Frequency of pixel clock */
+    uint32_t dsi_line_hz;           /*!< Frequency of pixel clock */
+    uint8_t dsi_line_num;
     uint32_t h_res;             /*!< Horizontal resolution, i.e. the number of pixels in a line */
     uint32_t v_res;             /*!< Vertical resolution, i.e. the number of lines in the frame  */
-    // uint32_t hsync_pulse_width; /*!< Horizontal sync width, unit: PCLK period */
-    // uint32_t hsync_back_porch;  /*!< Horizontal back porch, number of PCLK between hsync and start of line active data */
-    // uint32_t hsync_front_porch; /*!< Horizontal front porch, number of PCLK between the end of active data and the next hsync */
-    // uint32_t vsync_pulse_width; /*!< Vertical sync width, unit: number of lines */
-    // uint32_t vsync_back_porch;  /*!< Vertical back porch, number of invalid lines between vsync and start of frame */
-    // uint32_t vsync_front_porch; /*!< Vertical front porch, number of invalid lines between the end of frame and the next vsync */
+    uint32_t hsync_sync_active;      /*!< Horizontal sync width, unit: PCLK period */
+    uint32_t hsync_back_porch;  /*!< Horizontal back porch, number of PCLK between hsync and start of line active data */
+    uint32_t hsync_front_porch; /*!< Horizontal front porch, number of PCLK between the end of active data and the next hsync */
+    uint32_t vsync_sync_active;      /*!< Vertical sync width, unit: number of lines */
+    uint32_t vsync_back_porch;  /*!< Vertical back porch, number of invalid lines between vsync and start of frame */
+    uint32_t vsync_front_porch; /*!< Vertical front porch, number of invalid lines between the end of frame and the next vsync */
     // struct {
     //     uint32_t hsync_idle_low: 1;  /*!< The hsync signal is low in IDLE state */
     //     uint32_t vsync_idle_low: 1;  /*!< The vsync signal is low in IDLE state */

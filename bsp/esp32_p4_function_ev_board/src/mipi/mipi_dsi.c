@@ -17,6 +17,20 @@
 
 const char *TAG = "mipi_dsi";
 
+static uint16_t DPI_HSA = 0;
+static uint16_t DPI_HBP = 0;
+static uint16_t DPI_HFP = 0;
+static uint16_t DPI_HACT = 0;
+static uint16_t DPI_VSA = 0;
+static uint16_t DPI_VBP = 0;
+static uint16_t DPI_VFP = 0;
+static uint16_t DPI_VACT = 0;
+static uint32_t DPI_CLOCK_RATE = 0;
+static uint32_t DSI_LINE_RATE = 0;
+static uint8_t DSI_LINE_NUM = 0;
+static uint32_t DSI_BYTE_RATE = 0;
+static float DPI_TIME_FACTOR = 0;
+
 /*
  * @brief  : dphy_write_control
  * @params : <testcode>
@@ -528,6 +542,23 @@ void mipi_dcs_write_data(uint8_t *data, uint32_t len)
     }
 }
 
+void mipi_dsi_set_timing(const mipi_dsi_timing_t *timing)
+{
+    DPI_HSA = timing->dpi_hsa;
+    DPI_HBP = timing->dpi_hbp;
+    DPI_HFP = timing->dpi_hfp;
+    DPI_HACT = timing->dpi_hact;
+    DPI_VSA = timing->dpi_vsa;
+    DPI_VBP = timing->dpi_vbp;
+    DPI_VFP = timing->dpi_vfp;
+    DPI_VACT = timing->dpi_vact;
+    DPI_CLOCK_RATE = timing->dpi_clock_rate;
+    DSI_LINE_RATE = timing->dsi_line_rate;
+    DSI_LINE_NUM = timing->dsi_line_num;
+    DSI_BYTE_RATE = timing->dsi_line_rate / 8;
+    DPI_TIME_FACTOR = ((float)DSI_BYTE_RATE / DPI_CLOCK_RATE);
+}
+
 esp_err_t mipi_dsi_clock_init(void)
 {
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL02_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPHY_CLK_SRC_SEL, 1);
@@ -541,7 +572,7 @@ esp_err_t mipi_dsi_clock_init(void)
     REG_SET_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DSI_BRG);
     REG_CLR_BIT(HP_SYS_CLKRST_HP_RST_EN0_REG, HP_SYS_CLKRST_REG_RST_EN_DSI_BRG);
 
-    REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_DIV_NUM, (240000000 / MIPI_DPI_CLOCK_RATE) - 1);
+    REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_DIV_NUM, (240000000 / DPI_CLOCK_RATE) - 1);
     REG_SET_FIELD(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_SRC_SEL, 1);
     REG_SET_BIT(HP_SYS_CLKRST_PERI_CLK_CTRL03_REG, HP_SYS_CLKRST_REG_MIPI_DSI_DPICLK_EN);
 
@@ -572,13 +603,13 @@ esp_err_t mipi_dsi_host_phy_init(void)
     uint32_t DPI_NUMBER_OF_CHUNKS = 0; // Set 0 to transmit video line in one packet.
     uint32_t DPI_NULL_PKT_SIZE = 0;    // Set 0 to disable null packet.
     uint32_t DPI_PIXELS_PER_PACKET = DPI_HACT;
-    uint32_t DPI_HSA_TIME = (int)DPI_HSA * MIPI_DPI_TIME_FACTOR;
-    uint32_t DPI_HBP_TIME = (int)DPI_HBP * MIPI_DPI_TIME_FACTOR;
-    uint32_t DPI_HLINE_TIME = (int)((DPI_HSA + DPI_HBP + DPI_HFP + DPI_HACT) * MIPI_DPI_TIME_FACTOR);
-    uint32_t DPI_FPS         = (MIPI_DPI_CLOCK_RATE / ((MIPI_DSI_IMAGE_HSIZE + MIPI_DSI_IMAGE_HSYNC + MIPI_DSI_IMAGE_HBP + MIPI_DSI_IMAGE_HFP) * (MIPI_DSI_IMAGE_VSIZE + MIPI_DSI_IMAGE_VSYNC + MIPI_DSI_IMAGE_VBP + MIPI_DSI_IMAGE_VFP))); // fps
+    uint32_t DPI_HSA_TIME = (int)DPI_HSA * DPI_TIME_FACTOR;
+    uint32_t DPI_HBP_TIME = (int)DPI_HBP * DPI_TIME_FACTOR;
+    uint32_t DPI_HLINE_TIME = (int)((DPI_HSA + DPI_HBP + DPI_HFP + DPI_HACT) * DPI_TIME_FACTOR);
+    uint32_t DPI_FPS         = (DPI_CLOCK_RATE / ((DPI_HACT + DPI_HSA + DPI_HBP + DPI_HFP) * (DPI_VACT + DPI_VSA + DPI_VBP + DPI_VFP))); // fps
 
-    printf("MIPI_DPI_TIME_FACTOR: %f, DPI_HSA_TIME: %d, DPI_HBP_TIME: %d, DPI_HLINE_TIME: %d, DPI_FPS: %d\n",
-           MIPI_DPI_TIME_FACTOR, DPI_HSA_TIME, DPI_HBP_TIME, DPI_HLINE_TIME, DPI_FPS);
+    printf("DPI_TIME_FACTOR: %f, DPI_HSA_TIME: %d, DPI_HBP_TIME: %d, DPI_HLINE_TIME: %d, DPI_FPS: %d\n",
+           DPI_TIME_FACTOR, DPI_HSA_TIME, DPI_HBP_TIME, DPI_HLINE_TIME, DPI_FPS);
 
     MIPI_DSI_HOST.pwr_up.val = 0x0;
 
@@ -632,7 +663,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // !!! ILI9881C escape mode 频率敏感, 需要精确时钟
     MIPI_DSI_HOST.clkmgr_cfg.val = 0x00000000 |
                                    (((2 - 1) & 0x000000ff) << 8) | // bit[15: 8] TO_CLK_DIVISION       = 1 (Division factor for the Time Out clock.
-                                   (((MIPI_DSI_BYTE_RATE / 10000000 - 1) & 0x000000ff) << 0);  // bit[ 7: 0] TX_ESC_CLK_DIVISION   = 7 (Division factor for the TX Escape clock source (lanebyteclk).
+                                   (((DSI_BYTE_RATE / 10000000 - 1) & 0x000000ff) << 0);  // bit[ 7: 0] TX_ESC_CLK_DIVISION   = 7 (Division factor for the TX Escape clock source (lanebyteclk).
     // ---------------------------------------
     // Configure Display Bus Interface
     // ---------------------------------------
@@ -728,7 +759,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
                                        ((0 & 0x00007fff) << 0); // bit[14: 0] BTA_MAX_TIME          = 0   (Maximum time required to perform a read command in lane byte clock cycles. This register can only be modified when no read command is in progress.
     MIPI_DSI_HOST.phy_if_cfg.val = 0x00000000 |
                                    ((40 & 0x000000ff) << 8) | // bit[15: 8] PHY_WAIT_TIME_TO_HS   = 40  (PHY wait time to HSTX.
-                                   (((MIPI_DPI_LINE_NUM - 1) & 0x00000003) << 0);   // bit[ 1: 0] NUMBEROFLANES-1       = 2-1 (Number of active data lanes.
+                                   (((DSI_LINE_NUM - 1) & 0x00000003) << 0);   // bit[ 1: 0] NUMBEROFLANES-1       = 2-1 (Number of active data lanes.
     MIPI_DSI_HOST.phy_ulps_ctrl.val = 0x00000000 |
                                       ((0 & 0x00000001) << 3) | // bit[    3] PHY_TXEXITULPSLAN     = 0 (ULPS mode Exit on data lanes.
                                       ((0 & 0x00000001) << 2) | // bit[    2] PHY_TXREQULPSLAN      = 0 (ULPS mode Request on data lanes.
@@ -751,7 +782,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
     // ---------------------------------------
     // Configuring new PLL parameters
     // ---------------------------------------
-    uint32_t pll_freq = MIPI_DSI_LINE_RATE;
+    uint32_t pll_freq = DSI_LINE_RATE;
     uint32_t pll_N = 2;
     uint32_t pll_M = (pll_freq / 20000000) * pll_N; // fix 20MHz input clock
     uint8_t hs_freq = 0x1A;
@@ -809,7 +840,7 @@ esp_err_t mipi_dsi_host_phy_init(void)
             hs_freq = pll_ranges[x].hs_freq;
             break;
         }
-        if ((MIPI_DSI_LINE_RATE >= pll_ranges[x].freq * 1000000) && (MIPI_DSI_LINE_RATE < pll_ranges[x + 1].freq * 1000000)) {
+        if ((DSI_LINE_RATE >= pll_ranges[x].freq * 1000000) && (DSI_LINE_RATE < pll_ranges[x + 1].freq * 1000000)) {
             hs_freq = pll_ranges[x].hs_freq;
             break;
         }
@@ -882,7 +913,7 @@ esp_err_t mipi_dsi_bridge_init(void)
 {
     uint32_t rtn;
 
-    uint32_t HACT = MIPI_DSI_IMAGE_HSIZE;
+    uint32_t HACT = DPI_HACT;
 
     uint32_t DPI_HTOTAL        = DPI_HSA + DPI_HBP + DPI_HFP + HACT ;
     uint32_t DPI_VTOTAL        = DPI_VSA + DPI_VBP + DPI_VFP + DPI_VACT ;

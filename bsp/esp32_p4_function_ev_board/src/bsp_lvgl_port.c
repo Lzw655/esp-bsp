@@ -34,13 +34,14 @@
 #include "bsp/display.h"
 #include "bsp/touch.h"
 #include "bsp/esp32_p4_function_ev_board.h"
+#include "esp_lcd_panel_dsi.h"
 
-#define TEST_INTERRUPT    (1)
-#define TEST_PPA          (1)
-#define LV_USE_GPU        (1)
+#define TEST_INTERRUPT    (0)
+#define TEST_PPA          (0)
+#define LV_USE_GPU        (0)
 
-#define LVGL_DISP_HSIZE   (MIPI_DSI_DISP_HSIZE)
-#define LVGL_DISP_VSIZE   (MIPI_DSI_DISP_VSIZE)
+#define LVGL_DISP_HSIZE   (BSP_LCD_H_RES)
+#define LVGL_DISP_VSIZE   (BSP_LCD_V_RES)
 
 #define DMA2D_IN_CH0_INTR_SOURCE     (((INTERRUPT_CORE0_DMA2D_IN_CH0_INT_MAP_REG - DR_REG_INTERRUPT_CORE0_BASE) / 4))
 #define DMA2D_IN_CH1_INTR_SOURCE     (((INTERRUPT_CORE0_DMA2D_IN_CH1_INT_MAP_REG - DR_REG_INTERRUPT_CORE0_BASE) / 4))
@@ -103,28 +104,20 @@ static void dma2d_ch1_isr(void *arg)
 
 static void flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
 {
-    uint32_t len = (sizeof(lv_color_t) * ((area->y2 - area->y1 + 1) * (area->x2 - area->x1 + 1)));
-    void *dsi_frame_buf = NULL;
-
-    ESP_ERROR_CHECK(bsp_lcd_get_frame_buffer(1, &dsi_frame_buf));
+    esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)disp_drv->user_data;
+    if (panel == NULL) {
+        ESP_LOGE(TAG, "Invalid panel handle");
+        return;
+    }
 
 #if !TEST_PPA
-    // uint8_t *frame_buffer = dsi_frame_buf;
-    // int cnt = 0;
-    // int index = 0;
+    esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, color_p);
 
-    // cnt = 0;
-
-    // for (int y = area->y1; y <= area->y2; y++) {
-    //     for (int x = area->x1; x <= area->x2; x++) {
-    //         index = (y * LVGL_DISP_HSIZE + x) * 2 ;
-    //         frame_buffer[index + 0] = ((color_p[cnt].ch.red & 0xF8)) | ((color_p[cnt].ch.green & 0xE0) >> 5);
-    //         frame_buffer[index + 1] = ((color_p[cnt].ch.green & 0x1C) << 3) | ((color_p[cnt].ch.blue & 0x1F));
-    //         cnt++;
-    //     }
-    // }
-    // esp_spiram_writeback_cache();
 #else
+    uint32_t len = (sizeof(lv_color_t) * ((area->y2 - area->y1 + 1) * (area->x2 - area->x1 + 1)));
+    void *dsi_frame_buf = NULL;
+    ESP_ERROR_CHECK(esp_lcd_dsi_panel_get_frame_buffer(panel, 1, &dsi_frame_buf));
+
     Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, color_p, len);
     Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, color_p, len);
 
@@ -446,18 +439,13 @@ void lv_draw_ppa_ctx_deinit(lv_disp_drv_t *drv, lv_draw_ctx_t *draw_ctx)
 
 static lv_disp_t *display_init(esp_lcd_panel_handle_t lcd)
 {
-    // BSP_NULL_CHECK(lcd, NULL);
+    BSP_NULL_CHECK(lcd, NULL);
 
-    static int hsize = LVGL_DISP_HSIZE;
-    static int vsize = LVGL_DISP_VSIZE;
+    int hsize = LVGL_DISP_HSIZE;
+    int vsize = LVGL_DISP_VSIZE;
     static lv_disp_draw_buf_t  draw_buf;
     static lv_color_t *draw_buf_1 = NULL;
     static lv_color_t *draw_buf_2 = NULL;
-
-    // draw_buf_1 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * (LVGL_DISP_HSIZE * LVGL_DISP_VSIZE / 4), MALLOC_CAP_INTERNAL); /*A screen sized buffer*/
-    // draw_buf_1 = (lv_color_t *)malloc(sizeof(lv_color_t) * ((hsize * vsize) / 16));
-    // draw_buf_1 = (lv_color_t *)(PSRAM_CACHE_BASE + 0x800000);
-    //draw_buf_2 = (lv_color_t *)(dsi_frame_buf + LVGL_DISP_HSIZE * LVGL_DISP_VSIZE * 6);
 
     draw_buf_1 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LVGL_DISP_HSIZE * LVGL_DISP_VSIZE, MALLOC_CAP_SPIRAM); /*A screen sized buffer*/
     assert(draw_buf_1);
@@ -474,6 +462,7 @@ static lv_disp_t *display_init(esp_lcd_panel_handle_t lcd)
     disp_drv.physical_ver_res = -1;
     disp_drv.offset_x = 0;
     disp_drv.offset_y = 0;
+    disp_drv.user_data = lcd;
     /*Set a display buffer*/
     // disp_drv.direct_mode = 1;
     //disp_drv.full_refresh = 1;
@@ -558,6 +547,7 @@ static void lvgl_port_task(void *arg)
 
 esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t tp, lv_disp_t **disp, lv_indev_t **indev)
 {
+#if TEST_PPA
     uint8_t *link_buffer = (uint32_t *)malloc(1024 + 7);
 
     if ((uint32_t)link_buffer % 8) {
@@ -655,6 +645,7 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
 
     esp_intr_alloc(DMA2D_IN_CH0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, dma2d_ch0_isr, NULL, NULL);
     esp_intr_alloc(DMA2D_IN_CH1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, dma2d_ch1_isr, NULL, NULL);
+#endif
 #endif
 
     lv_init();

@@ -14,7 +14,7 @@ idf_component_register(
     SRCS ${SRCS}
     INCLUDE_DIRS ${INCLUDE_DIR}
     REQUIRES driver lvgl
-    PRIV_REQUIRES esp_timer spiffs esp_lcd fatfs
+    PRIV_REQUIRES esp_timer spiffs esp_lcd fatfs esp_psram esp_mm
 )
 
 target_compile_options(

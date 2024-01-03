@@ -3,11 +3,30 @@
  *
  * SPDX-License-Identifier: CC0-1.0
  */
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+
 #include "mipi_dsi.h"
 
-esp_err_t esp_lcd_new_panel_ili9806(const esp_lcd_panel_io_handle_t io, const esp_lcd_panel_dev_config_t *panel_dev_config,
+#include "esp_lcd_ili9881.h"
+
+static const char *TAG = "ili9881";
+
+esp_err_t esp_lcd_new_panel_ili9881(const esp_lcd_panel_io_handle_t io, const esp_lcd_panel_dev_config_t *panel_dev_config,
                                     esp_lcd_panel_handle_t *ret_panel)
 {
+
+    // RDDID: Read Display ID(DAH)
+    // This read byte returns 24-bit display identification information.
+    // The 1 parameter (ID1): the module’s manufacture ID.
+    // The 2 parameter (ID2): the module/driver version ID.
+    // The 3 parameter (ID3): the module/driver ID
+    uint8_t ID1, ID2, ID3;
+    mipi_dcs_read_cmd(0xDA, 3, &ID1, &ID2, &ID3);
+    ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x", ID1, ID2, ID3);
+
     mipi_dcs_write_cmd(0xFF, 0x5, 0xFF, 0x98, 0x06, 0x04, 0x00); // Change to Page 0
     mipi_dcs_write_cmd(0x20, 0x1, 0x00);
 
@@ -159,4 +178,8 @@ esp_err_t esp_lcd_new_panel_ili9806(const esp_lcd_panel_io_handle_t io, const es
     mipi_dcs_write_cmd(0x11, 1, 0x00); // Sleep-Out
     vTaskDelay(pdMS_TO_TICKS(120));
     mipi_dcs_write_cmd(0x29, 1, 0x00); // Display On
+
+    ESP_LOGI(TAG, "Init done");
+
+    return ESP_OK;
 }

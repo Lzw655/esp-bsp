@@ -285,167 +285,8 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void);
 #define LVGL_TASK_PRIORITY          (CONFIG_BSP_DISPLAY_LVGL_TASK_PRIORITY)
 #define LVGL_TASK_DELAY             (CONFIG_BSP_DISPLAY_LVGL_TASK_DELAY)
 
-#define TEST_DSI_NT35516      (0)
-#define TEST_DSI_ILI9806E     (0)
-#define TEST_DSI_ILI9881C     (1)
-#define TEST_DSI_ST7796       (0)
-#define TEST_DSI_NT35532      (0)
-#define TEST_DSI_ICN6211_800  (0)
-#define TEST_DSI_ICN6211_1280 (0)
-
-#if TEST_DSI_NT35516
-#define  MIPI_DSI_LINE_RATE  (800000000)
-#define  MIPI_DPI_LINE_NUM   (2)
-#define  MIPI_DPI_CLOCK_RATE (60000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           540
-#define  MIPI_DSI_IMAGE_VSIZE           960
-
-#if (TEST_DSI_COLOR_MODE==MIPI_DSI_RGB888_MODE)
-#define  MIPI_DSI_IMAGE_HSYNC           200
-#define  MIPI_DSI_IMAGE_HBP             1000
-#define  MIPI_DSI_IMAGE_HFP             1000
-#define  MIPI_DSI_IMAGE_VSYNC           16
-#define  MIPI_DSI_IMAGE_VBP             32
-#define  MIPI_DSI_IMAGE_VFP             32 + (960 - MIPI_DSI_IMAGE_VSIZE)
-#else
-#if 1
-#define  MIPI_DSI_IMAGE_HSYNC           80
-#define  MIPI_DSI_IMAGE_HBP             200
-#define  MIPI_DSI_IMAGE_HFP             200
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             8
-#define  MIPI_DSI_IMAGE_VFP             8 + (960 - MIPI_DSI_IMAGE_VSIZE)
-#else
-#define  MIPI_DSI_IMAGE_HSYNC           80
-#define  MIPI_DSI_IMAGE_HBP             1000
-#define  MIPI_DSI_IMAGE_HFP             1000
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             8
-#define  MIPI_DSI_IMAGE_VFP             8 + (960 - MIPI_DSI_IMAGE_VSIZE)
-#endif
-#endif
-
-#endif
-
-#if TEST_DSI_ILI9806E
-#define  MIPI_DSI_LINE_RATE  (1000000000)
-#define  MIPI_DPI_LINE_NUM   (2)
-#define  MIPI_DPI_CLOCK_RATE (120000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           480
-#define  MIPI_DSI_IMAGE_VSIZE           864
-
-#define  MIPI_DSI_IMAGE_HSYNC           1
-#define  MIPI_DSI_IMAGE_HBP             2
-#define  MIPI_DSI_IMAGE_HFP             2
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             8
-#define  MIPI_DSI_IMAGE_VFP             8
-#endif
-
-#if TEST_DSI_ILI9881C
-#define  MIPI_DSI_LINE_RATE  (1000000000)
-#define  MIPI_DPI_LINE_NUM   (2)
-#define  MIPI_DPI_CLOCK_RATE (40000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           800
-#define  MIPI_DSI_IMAGE_VSIZE           1280
-
-#define  MIPI_DSI_IMAGE_HSYNC           40
-#define  MIPI_DSI_IMAGE_HBP             140
-#define  MIPI_DSI_IMAGE_HFP             40
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             16
-#define  MIPI_DSI_IMAGE_VFP             16
-#endif
-
-#if  TEST_DSI_ST7796
-#define  MIPI_DSI_LINE_RATE  (400000000)
-#define  MIPI_DPI_LINE_NUM   (1)
-#define  MIPI_DPI_CLOCK_RATE (20000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           320
-#define  MIPI_DSI_IMAGE_VSIZE           480
-
-#define  MIPI_DSI_IMAGE_HSYNC           100
-#define  MIPI_DSI_IMAGE_HBP             120
-#define  MIPI_DSI_IMAGE_HFP             120
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             8
-#define  MIPI_DSI_IMAGE_VFP             8 + (480 - MIPI_DSI_IMAGE_VSIZE)
-#endif
-
-#if TEST_DSI_NT35532
-#define  MIPI_DSI_LINE_RATE  (1000000000)
-#define  MIPI_DPI_LINE_NUM   (2)
-#define  MIPI_DPI_CLOCK_RATE (64000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           1080
-#define  MIPI_DSI_IMAGE_VSIZE           1920
-
-#define  MIPI_DSI_IMAGE_HSYNC           400
-#define  MIPI_DSI_IMAGE_HBP             400
-#define  MIPI_DSI_IMAGE_HFP             400
-#define  MIPI_DSI_IMAGE_VSYNC           2
-#define  MIPI_DSI_IMAGE_VBP             2
-#define  MIPI_DSI_IMAGE_VFP             4 + (1920 - MIPI_DSI_IMAGE_VSIZE)
-#endif
-
-#if TEST_DSI_ICN6211_800
-#define  MIPI_DSI_LINE_RATE  (800000000)
-#define  MIPI_DPI_LINE_NUM   (2)
-#define  MIPI_DPI_CLOCK_RATE (32000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           800
-#define  MIPI_DSI_IMAGE_VSIZE           480
-
-// HSYNC 1.407us HT 33.29us, 30.04KHz
-#define  MIPI_DSI_IMAGE_HSYNC           80
-#define  MIPI_DSI_IMAGE_HBP             100
-#define  MIPI_DSI_IMAGE_HFP             100
-
-// VSYNC 100us, VT 18ms, 56.88Hz
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             4
-#define  MIPI_DSI_IMAGE_VFP             8
-#endif
-
-#if TEST_DSI_ICN6211_1280
-#define  MIPI_DSI_LINE_RATE  (800000000)
-#define  MIPI_DPI_LINE_NUM   (2)
-#define  MIPI_DPI_CLOCK_RATE (80000000)
-
-#define  MIPI_DSI_IMAGE_HSIZE           1280
-#define  MIPI_DSI_IMAGE_VSIZE           800
-
-// HSYNC 1.407us HT 33.29us, 30.04KHz
-#define  MIPI_DSI_IMAGE_HSYNC           114
-#define  MIPI_DSI_IMAGE_HBP             120
-#define  MIPI_DSI_IMAGE_HFP             120
-
-// VSYNC 100us, VT 18ms, 56.88Hz
-#define  MIPI_DSI_IMAGE_VSYNC           4
-#define  MIPI_DSI_IMAGE_VBP             4
-#define  MIPI_DSI_IMAGE_VFP             8
-#endif
-
-#define DPI_HSA                MIPI_DSI_IMAGE_HSYNC
-#define DPI_HBP                MIPI_DSI_IMAGE_HBP
-#define DPI_HFP                MIPI_DSI_IMAGE_HFP
-#define DPI_HACT               MIPI_DSI_IMAGE_HSIZE
-
-#define DPI_VSA                MIPI_DSI_IMAGE_VSYNC
-#define DPI_VBP                MIPI_DSI_IMAGE_VBP
-#define DPI_VFP                MIPI_DSI_IMAGE_VFP
-#define DPI_VACT               MIPI_DSI_IMAGE_VSIZE
-
-#define MIPI_DSI_DISP_HSIZE     (MIPI_DSI_IMAGE_HSIZE)
-#define MIPI_DSI_DISP_VSIZE     (MIPI_DSI_IMAGE_VSIZE)
-#define MIPI_DSI_DISP_BUF_SIZE  (MIPI_DSI_DISP_HSIZE * MIPI_DSI_DISP_VSIZE * TEST_DSI_COLOR_WIDTH / 8)
-
-#define BSP_LCD_H_RES           (MIPI_DSI_DISP_HSIZE)
-#define BSP_LCD_V_RES           (MIPI_DSI_IMAGE_VSIZE)
+#define BSP_LCD_H_RES   bsp_display_get_h_res()
+#define BSP_LCD_V_RES   bsp_display_get_v_res()
 
 /**
  * @brief Initialize display
@@ -468,6 +309,24 @@ lv_disp_t *bsp_display_start(void);
  * @return Pointer to LVGL display or NULL when error occured
  */
 lv_disp_t *bsp_display_start_with_config(const bsp_display_cfg_t *cfg);
+
+/**
+ * @brief Get display horizontal resolution
+ *
+ * @note  This function should be called after calling `bsp_display_new()` or `bsp_display_start()`
+ *
+ * @return Horizontal resolution. Return 0 if error occured.
+ */
+uint16_t bsp_display_get_h_res(void);
+
+/**
+ * @brief Get display vertical resolution
+ *
+ * @note  This function should be called after calling `bsp_display_new()` or `bsp_display_start()`
+ *
+ * @return Vertical resolution. Return 0 if error occured.
+ */
+uint16_t bsp_display_get_v_res(void);
 
 /**
  * @brief Get pointer to input device (touch, buttons, ...)

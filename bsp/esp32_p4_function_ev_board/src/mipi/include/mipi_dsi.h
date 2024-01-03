@@ -10,7 +10,9 @@
 
 #include "esp_err.h"
 
-#include "bsp/esp32_p4_function_ev_board.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MIPI_DSI_RGB888_MODE (0)
 #define MIPI_DSI_RGB666_MODE (1)
@@ -44,13 +46,23 @@
 #define  MIPI_DSI_RGB565_CYAN    (0x07FF)
 #define  MIPI_DSI_RGB565_MAGENTA (0xF81F)
 
-#define  MIPI_DSI_BYTE_RATE  (MIPI_DSI_LINE_RATE / 8)
+// #define  MIPI_DSI_BYTE_RATE  (MIPI_DSI_LINE_RATE / 8)
 
-#define  MIPI_DPI_TIME_FACTOR ((float)MIPI_DSI_BYTE_RATE / MIPI_DPI_CLOCK_RATE)
+// #define  MIPI_DPI_TIME_FACTOR
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef struct {
+    uint16_t dpi_hsa;
+    uint16_t dpi_hbp;
+    uint16_t dpi_hfp;
+    uint16_t dpi_hact;
+    uint16_t dpi_vsa;
+    uint16_t dpi_vbp;
+    uint16_t dpi_vfp;
+    uint16_t dpi_vact;
+    uint32_t dpi_clock_rate;
+    uint32_t dsi_line_rate;
+    uint8_t dsi_line_num;
+} mipi_dsi_timing_t;
 
 void mipi_dsi_dphy_write_control (uint32_t testcode, uint32_t testwrite);
 
@@ -176,6 +188,8 @@ void mipi_dcs_write_cmd(uint8_t cmd, uint32_t len, ...);
 void mipi_dcs_read_cmd(uint8_t cmd, uint32_t len, ...);
 
 void mipi_dcs_write_data(uint8_t *data, uint32_t len);
+
+void mipi_dsi_set_timing(const mipi_dsi_timing_t *timing);
 
 esp_err_t mipi_dsi_clock_init(void);
 

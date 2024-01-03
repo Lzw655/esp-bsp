@@ -1,8 +1,10 @@
 /*
- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: CC0-1.0
  */
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_check.h"
 #include "esp_err.h"
 #include "driver/gpio.h"
@@ -13,11 +15,7 @@
 #include "mipi_dsi.h"
 #include "mipi_csi.h"
 
-#define MIPI_DSI_PROBE_IO       (-1)
-#define MIPI_CSI_PROBE_IO       (-1)
-// #define MIPI_DSI_PROBE_IO       (45)
-// #define MIPI_CSI_PROBE_IO       (46)
-#define MIPI_FRAME_PROBE_COUNT  (100)
+#include "dw_gdma.h"
 
 #define MIPI_LCD_DMA_TRANS_DAR      (0x50105000)
 #define MIPI_CAM_DMA_TRANS_SAR      (0x50104000)
@@ -31,11 +29,13 @@ static bool dw_gdma_started = false;
 
 static volatile uint8_t *dsi_dma_buf = NULL;
 static volatile uint32_t dsi_frame_cnt = 0;
-static volatile void (*dsi_dma_done_cb)(void *arg) = NULL;
+static volatile void *dsi_dma_done_user_data = NULL;
+static dw_gdma_callback_t dsi_dma_done_cb = NULL;
 
 static volatile uint8_t *csi_dma_buf = NULL;
 static volatile uint32_t csi_frame_cnt = 0;
-static volatile void (*csi_dma_done_cb)(void *arg) = NULL;
+static volatile void *csi_dma_done_user_data = NULL;
+static dw_gdma_callback_t csi_dma_done_cb = NULL;
 
 static void dw_gdma_isr()
 {
@@ -53,23 +53,12 @@ static void dw_gdma_isr()
             typeof(DW_GDMA.ch[0].int_st0) status = DW_GDMA.ch[0].int_st0;
 
             if (status.dma_tfr_done) {
-#if MIPI_CSI_PROBE_IO >= 0
-                gpio_set_level(MIPI_CSI_PROBE_IO, 1);
-#endif
-
                 if (csi_dma_done_cb) {
-                    csi_dma_done_cb(NULL);
+                    csi_dma_done_cb(csi_dma_done_user_data);
                 }
 
                 DW_GDMA.ch[0].dar0 = (uint32_t)csi_dma_buf;
                 DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x101);
-
-#if MIPI_CSI_PROBE_IO >= 0
-                if (++csi_frame_cnt == MIPI_FRAME_PROBE_COUNT) {
-                    csi_frame_cnt = 0;
-                }
-                gpio_set_level(MIPI_CSI_PROBE_IO, 0);
-#endif
             }
 
             DW_GDMA.ch[0].int_clr0.val = 0xffffffff;
@@ -82,23 +71,12 @@ static void dw_gdma_isr()
             typeof(DW_GDMA.ch[1].int_st0) status = DW_GDMA.ch[1].int_st0;
 
             if (status.dma_tfr_done) {
-#if MIPI_DSI_PROBE_IO >= 0
-                gpio_set_level(MIPI_DSI_PROBE_IO, 1);
-#endif
-
                 if (dsi_dma_done_cb) {
-                    dsi_dma_done_cb(NULL);
+                    dsi_dma_done_cb(dsi_dma_done_user_data);
                 }
 
                 DW_GDMA.ch[1].sar0 = (uint32_t)dsi_dma_buf;
                 DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
-
-#if MIPI_DSI_PROBE_IO >= 0
-                if (++dsi_frame_cnt == MIPI_FRAME_PROBE_COUNT) {
-                    dsi_frame_cnt = 0;
-                }
-                gpio_set_level(MIPI_DSI_PROBE_IO, 0);
-#endif
             }
 
             // Clear all interrupt of ch1
@@ -192,11 +170,6 @@ esp_err_t dw_gdma_mipi_dsi_start(void)
                             "Allocate DW_GDMA interrupt failed");
     }
 
-#if MIPI_DSI_PROBE_IO >= 0
-    gpio_set_direction(MIPI_DSI_PROBE_IO, GPIO_MODE_OUTPUT);
-    gpio_set_level(MIPI_DSI_PROBE_IO, 0);
-#endif
-
     DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
 
     vTaskDelay(pdMS_TO_TICKS(1));
@@ -216,9 +189,10 @@ uint32_t dw_gdma_mipi_dsi_get_frame_count(void)
     return dsi_frame_cnt;
 }
 
-void dw_gdma_mipi_dsi_register_callback(void (*callback)(void *arg))
+void dw_gdma_mipi_dsi_register_callback(dw_gdma_callback_t callback, void *user_data)
 {
     dsi_dma_done_cb = callback;
+    dsi_dma_done_user_data = user_data;
 }
 
 esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_width)
@@ -284,11 +258,6 @@ esp_err_t dw_gdma_mipi_csi_start(void)
                             "Allocate DW_GDMA interrupt failed");
     }
 
-#if MIPI_CSI_PROBE_IO >= 0
-    gpio_set_direction(MIPI_CSI_PROBE_IO, GPIO_MODE_OUTPUT);
-    gpio_set_level(MIPI_CSI_PROBE_IO, 0);
-#endif
-
     DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x101);
 
     vTaskDelay(pdMS_TO_TICKS(1));
@@ -308,7 +277,8 @@ uint32_t dw_gdma_mipi_csi_get_frame_count(void)
     return csi_frame_cnt;
 }
 
-void dw_gdma_mipi_csi_register_callback(void (*callback)(void *arg))
+void dw_gdma_mipi_csi_register_callback(dw_gdma_callback_t callback, void *user_data)
 {
     csi_dma_done_cb = callback;
+    csi_dma_done_user_data = user_data;
 }
