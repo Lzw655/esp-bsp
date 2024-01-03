@@ -13,8 +13,15 @@
 
 #include "mipi_csi.h"
 #include "dw_gdma.h"
+
 #include "ESP_UI.h"
-#include "apps.h"
+#include "ESP_UI_APP.h"
+
+#include "memory_game/Memory_game.h"
+#include "sketchpad/Sketchpad.h"
+#include "setting/Setting.h"
+#include "game_2048/Game_2048.h"
+#include "weather_forecast/WeatherForecast.h"
 
 #define LOG_MEM_INFO            (0)
 #define LOG_MIPI_FRAME          (0)
@@ -49,8 +56,13 @@ extern "C" void app_main(void)
     ESP_UI *eui = new ESP_UI();
     assert(eui != NULL);
 
-    MusicPlayer *music_player = new MusicPlayer();
-    // Camera *camera = new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0);
+    //MusicPlayer *music_player = new MusicPlayer();
+    //Camera *camera = new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0);
+    WeatherForecast *weather_forecast = new WeatherForecast();
+    Memory_game *memory_game = new Memory_game();
+    Sketchpad *sketchpad = new Sketchpad();
+    Setting *setting = new Setting();
+    Game2048 *app_2048 = new Game2048();
 
     eui->init();
     eui->data()->data.home.app_table.screen_num = 1;
@@ -63,8 +75,15 @@ extern "C" void app_main(void)
     eui->begin();
     // eui->printFormatData();
 
-    eui->installApp(*music_player);
+    // eui->installApp(*music_player);
     // eui->installApp(*camera);
+    eui->installApp(*weather_forecast);
+    eui->installApp(*memory_game);
+    eui->installApp(*sketchpad);
+    eui->installApp(*setting);
+
+    eui->installApp(app_2048);
+
 
     bsp_display_unlock();
 
