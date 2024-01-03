@@ -283,7 +283,6 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void);
 #define LVGL_TASK_CORE_ID           (CONFIG_BSP_DISPLAY_LVGL_TASK_CORE_ID)
 #define LVGL_TASK_STACK_SIZE_KB     (CONFIG_BSP_DISPLAY_LVGL_TASK_STACK_SIZE_KB)
 #define LVGL_TASK_PRIORITY          (CONFIG_BSP_DISPLAY_LVGL_TASK_PRIORITY)
-#define LVGL_TASK_DELAY             (CONFIG_BSP_DISPLAY_LVGL_TASK_DELAY)
 
 #define TEST_DSI_NT35516      (0)
 #define TEST_DSI_ILI9806E     (0)

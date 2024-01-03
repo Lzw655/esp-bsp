@@ -31,11 +31,8 @@ static bool dw_gdma_started = false;
 
 static volatile uint8_t *dsi_dma_buf = NULL;
 static volatile uint32_t dsi_frame_cnt = 0;
-static volatile void (*dsi_dma_done_cb)(void *arg) = NULL;
-
 static volatile uint8_t *csi_dma_buf = NULL;
 static volatile uint32_t csi_frame_cnt = 0;
-static volatile void (*csi_dma_done_cb)(void *arg) = NULL;
 
 static void dw_gdma_isr()
 {
@@ -57,9 +54,24 @@ static void dw_gdma_isr()
                 gpio_set_level(MIPI_CSI_PROBE_IO, 1);
 #endif
 
-                if (csi_dma_done_cb) {
-                    csi_dma_done_cb(NULL);
-                }
+                // if (TEST_MULTI_FRAME) {
+                //     switch (buf_wr_ptr) {
+                //         case 0 :
+                //             buf_wr_ptr = 1;
+                //             break;
+
+                //         case 1 :
+                //             buf_wr_ptr = 2;
+                //             break;
+
+                //         case 2 :
+                //             buf_wr_ptr = 0;
+                //             break;
+
+                //         default:
+                //             ;
+                //     }
+                // }
 
                 DW_GDMA.ch[0].dar0 = (uint32_t)csi_dma_buf;
                 DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x101);
@@ -85,10 +97,6 @@ static void dw_gdma_isr()
 #if MIPI_DSI_PROBE_IO >= 0
                 gpio_set_level(MIPI_DSI_PROBE_IO, 1);
 #endif
-
-                if (dsi_dma_done_cb) {
-                    dsi_dma_done_cb(NULL);
-                }
 
                 DW_GDMA.ch[1].sar0 = (uint32_t)dsi_dma_buf;
                 DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
@@ -182,45 +190,6 @@ esp_err_t dw_gdma_mipi_dsi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
     return ESP_OK;
 }
 
-esp_err_t dw_gdma_mipi_dsi_start(void)
-{
-    if (!dw_gdma_started) {
-        dw_gdma_started = true;
-
-        intr_handle_t intr_handle = NULL;
-        ESP_RETURN_ON_ERROR(esp_intr_alloc(DW_GDMA_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, dw_gdma_isr, NULL, &intr_handle), TAG,
-                            "Allocate DW_GDMA interrupt failed");
-    }
-
-#if MIPI_DSI_PROBE_IO >= 0
-    gpio_set_direction(MIPI_DSI_PROBE_IO, GPIO_MODE_OUTPUT);
-    gpio_set_level(MIPI_DSI_PROBE_IO, 0);
-#endif
-
-    DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
-
-    vTaskDelay(pdMS_TO_TICKS(1));
-
-    printf("DW_GDMA mipi-dsi start.\n");
-
-    return ESP_OK;
-}
-
-void dw_gdma_mipi_dsi_set_buffer(void *buffer)
-{
-    dsi_dma_buf = buffer;
-}
-
-uint32_t dw_gdma_mipi_dsi_get_frame_count(void)
-{
-    return dsi_frame_cnt;
-}
-
-void dw_gdma_mipi_dsi_register_callback(void (*callback)(void *arg))
-{
-    dsi_dma_done_cb = callback;
-}
-
 esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_width)
 {
     ESP_RETURN_ON_FALSE(buffer != NULL, ESP_ERR_INVALID_ARG, TAG, "Invalid buffer");
@@ -274,6 +243,30 @@ esp_err_t dw_gdma_mipi_csi_init(void *buffer, size_t buffer_size, uint8_t tr_wid
     return ESP_OK;
 }
 
+esp_err_t dw_gdma_mipi_dsi_start(void)
+{
+    if (!dw_gdma_started) {
+        dw_gdma_started = true;
+
+        intr_handle_t intr_handle = NULL;
+        ESP_RETURN_ON_ERROR(esp_intr_alloc(DW_GDMA_INTR_SOURCE, ESP_INTR_FLAG_LEVEL2, dw_gdma_isr, NULL, &intr_handle), TAG,
+                            "Allocate DW_GDMA interrupt failed");
+    }
+
+#if MIPI_DSI_PROBE_IO >= 0
+    gpio_set_direction(MIPI_DSI_PROBE_IO, GPIO_MODE_OUTPUT);
+    gpio_set_level(MIPI_DSI_PROBE_IO, 0);
+#endif
+
+    DW_GDMA.chen0.val = ((DW_GDMA.chen0.val) | 0x202);
+
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    printf("DW_GDMA mipi-dsi start.\n");
+
+    return ESP_OK;
+}
+
 esp_err_t dw_gdma_mipi_csi_start(void)
 {
     if (!dw_gdma_started) {
@@ -298,17 +291,12 @@ esp_err_t dw_gdma_mipi_csi_start(void)
     return ESP_OK;
 }
 
-void dw_gdma_mipi_csi_set_buffer(void *buffer)
+uint32_t dw_gdma_mipi_dsi_get_frame_count(void)
 {
-    csi_dma_buf = buffer;
+    return dsi_frame_cnt;
 }
 
 uint32_t dw_gdma_mipi_csi_get_frame_count(void)
 {
     return csi_frame_cnt;
-}
-
-void dw_gdma_mipi_csi_register_callback(void (*callback)(void *arg))
-{
-    csi_dma_done_cb = callback;
 }

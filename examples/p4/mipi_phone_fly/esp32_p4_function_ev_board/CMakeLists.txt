@@ -6,7 +6,6 @@ list(APPEND INCLUDE_DIR "src/mipi_soc/include")
 list(APPEND INCLUDE_DIR "src/ppa/include")
 list(APPEND INCLUDE_DIR "src/sensor/include")
 list(APPEND INCLUDE_DIR "src/isp/include")
-list(APPEND INCLUDE_DIR "src/lcd/include")
 
 file(GLOB_RECURSE SRCS src/*.c)
 

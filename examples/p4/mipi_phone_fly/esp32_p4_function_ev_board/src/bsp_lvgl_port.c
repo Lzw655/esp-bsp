@@ -109,21 +109,21 @@ static void flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_co
     ESP_ERROR_CHECK(bsp_lcd_get_frame_buffer(1, &dsi_frame_buf));
 
 #if !TEST_PPA
-    // uint8_t *frame_buffer = dsi_frame_buf;
-    // int cnt = 0;
-    // int index = 0;
+    uint8_t *frame_buffer = dsi_frame_buf;
+    int cnt = 0;
+    int index = 0;
 
-    // cnt = 0;
+    cnt = 0;
 
-    // for (int y = area->y1; y <= area->y2; y++) {
-    //     for (int x = area->x1; x <= area->x2; x++) {
-    //         index = (y * LVGL_DISP_HSIZE + x) * 2 ;
-    //         frame_buffer[index + 0] = ((color_p[cnt].ch.red & 0xF8)) | ((color_p[cnt].ch.green & 0xE0) >> 5);
-    //         frame_buffer[index + 1] = ((color_p[cnt].ch.green & 0x1C) << 3) | ((color_p[cnt].ch.blue & 0x1F));
-    //         cnt++;
-    //     }
-    // }
-    // esp_spiram_writeback_cache();
+    for (int y = area->y1; y <= area->y2; y++) {
+        for (int x = area->x1; x <= area->x2; x++) {
+            index = (y * LVGL_DISP_HSIZE + x) * 2 ;
+            frame_buffer[index + 0] = ((color_p[cnt].ch.red & 0xF8)) | ((color_p[cnt].ch.green & 0xE0) >> 5);
+            frame_buffer[index + 1] = ((color_p[cnt].ch.green & 0x1C) << 3) | ((color_p[cnt].ch.blue & 0x1F));
+            cnt++;
+        }
+    }
+    esp_spiram_writeback_cache();
 #else
     Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, color_p, len);
     Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, color_p, len);
@@ -169,8 +169,8 @@ static void flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_co
 #else
     while (!DMA2D.in_int_raw_ch0.suc_eof);
 #endif
-#endif
     lv_disp_flush_ready(disp_drv);
+#endif
 }
 
 
@@ -549,8 +549,8 @@ static void lvgl_port_task(void *arg)
         bsp_lvgl_port_unlock();
         if (task_delay_ms > 500) {
             task_delay_ms = 500;
-        } else if (task_delay_ms < LVGL_TASK_DELAY) {
-            task_delay_ms = LVGL_TASK_DELAY;
+        } else if (task_delay_ms < CONFIG_BSP_DISPLAY_LVGL_TASK_DELAY) {
+            task_delay_ms = CONFIG_BSP_DISPLAY_LVGL_TASK_DELAY;
         }
         vTaskDelay(pdMS_TO_TICKS(task_delay_ms));
     }

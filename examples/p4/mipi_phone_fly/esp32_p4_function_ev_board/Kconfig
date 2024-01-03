@@ -79,24 +79,6 @@ menu "Board Support Package"
                 Mount point of the SD card in the Virtual File System
     endmenu
 
-    menu "LCD DSI"
-        config LCD_DSI_ENABLE_DEBUG_LOG
-            bool "Enable debug log"
-            default y
-            help
-                Wether to enable the debug log message for LCD driver.
-                Note that, this option only controls the LCD driver log, won't affect other drivers.
-
-        config LCD_DSI_ISR_IRAM_SAFE
-            bool "DSI LCD ISR IRAM-Safe"
-            default n
-            help
-                Ensure the LCD interrupt is IRAM-Safe by allowing the interrupt handler to be
-                executable when the cache is disabled (e.g. SPI Flash write).
-                If you want the LCD driver to keep flushing the screen even when cache ops disabled,
-                you can enable this option. Note, this will also increase the IRAM usage.
-    endmenu
-
     menu "Display"
         config BSP_DISPLAY_LVGL_TASK_PRIORITY
             int "LVGL task priority"
