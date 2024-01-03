@@ -53,7 +53,7 @@ extern "C" void app_main(void)
     eui->data()->data.disp_background_color = lv_color_hex(0x0091ff);
     eui->data()->data.home.app_table.main_text_color = lv_color_white();
     // eui->enableDebugMode();
-    // eui->enableGesture(bsp_display_get_input_dev());
+    eui->enableGesture(bsp_display_get_input_dev());
     eui->begin();
     // eui->printFormatData();
 

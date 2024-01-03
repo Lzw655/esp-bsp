@@ -12,7 +12,7 @@ file(GLOB_RECURSE SRCS src/*.c)
 idf_component_register(
     SRCS ${SRCS}
     INCLUDE_DIRS ${INCLUDE_DIR}
-    REQUIRES driver
+    REQUIRES driver lvgl
     PRIV_REQUIRES esp_timer spiffs esp_lcd fatfs
 )
 

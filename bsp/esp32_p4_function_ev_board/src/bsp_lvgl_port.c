@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -665,10 +665,10 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
     lvgl_mux = xSemaphoreCreateRecursiveMutex();
     BSP_NULL_CHECK(lvgl_mux, ESP_FAIL);
     ESP_LOGI(TAG, "Create LVGL task");
-    BaseType_t core_id = (CONFIG_BSP_DISPLAY_LVGL_TASK_CORE_ID < 0) ? tskNO_AFFINITY : CONFIG_BSP_DISPLAY_LVGL_TASK_CORE_ID;
+    BaseType_t core_id = (LVGL_TASK_CORE_ID < 0) ? tskNO_AFFINITY : LVGL_TASK_CORE_ID;
     BaseType_t ret = xTaskCreatePinnedToCore(
-                         lvgl_port_task, "LVGL", CONFIG_BSP_DISPLAY_LVGL_TASK_STACK_SIZE_KB * 1024, NULL,
-                         CONFIG_BSP_DISPLAY_LVGL_TASK_PRIORITY, &lvgl_task_handle, core_id
+                         lvgl_port_task, "LVGL", LVGL_TASK_STACK_SIZE_KB * 1024, NULL,
+                         LVGL_TASK_PRIORITY, &lvgl_task_handle, core_id
                      );
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "Failed to create LVGL task");
