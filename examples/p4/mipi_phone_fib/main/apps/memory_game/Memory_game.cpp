@@ -40,7 +40,7 @@ void Memory_game::run()
 {
 	lv_obj_t * memory_game = lv_100ask_memory_game_create(lv_scr_act());
     lv_obj_set_size(memory_game, MEMORY_GAME_DEFAULT_WIDTH, MEMORY_GAME_DEFAULT_HEIGHT);
-    //lv_100ask_memory_set_map(memory_game, 2, 2);
+    lv_100ask_memory_game_set_map(memory_game, 2, 2);
     lv_obj_set_style_text_font(memory_game, &lv_font_montserrat_30, 0);
     lv_obj_center(memory_game);
 

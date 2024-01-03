@@ -22,6 +22,7 @@
 #include "setting/Setting.h"
 #include "game_2048/Game_2048.h"
 #include "weather_forecast/WeatherForecast.h"
+#include "calculator/Calculator.h"
 
 #define LOG_MEM_INFO            (0)
 #define LOG_MIPI_FRAME          (0)
@@ -63,6 +64,7 @@ extern "C" void app_main(void)
     Sketchpad *sketchpad = new Sketchpad();
     Setting *setting = new Setting();
     Game2048 *app_2048 = new Game2048();
+    Calculator *calculator = new Calculator();
 
     eui->init();
     eui->data()->data.home.app_table.screen_num = 1;
@@ -83,6 +85,7 @@ extern "C" void app_main(void)
     eui->installApp(*setting);
 
     eui->installApp(app_2048);
+    eui->installApp(calculator);
 
 
     bsp_display_unlock();

@@ -4,8 +4,8 @@ using namespace std;
 
 LV_IMG_DECLARE(img_app_2048);
 
-#define GAME2048_DEFAULT_HEIGHT         600
-#define GAME2048_DEFAULT_WIDTH          600
+#define GAME2048_DEFAULT_HEIGHT         700
+#define GAME2048_DEFAULT_WIDTH          700
 
 static void game_2048_event_cb(lv_event_t * e)
 {
@@ -62,6 +62,7 @@ void Game2048::run(void)
     /*Information*/
     lv_obj_t * label = lv_label_create(lv_scr_act());
     lv_label_set_recolor(label, true);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_38, 0);
     lv_label_set_text_fmt(label, "SCORE: #ff00ff %d #", lv_100ask_2048_get_score(obj_2048));
     lv_obj_align_to(label, obj_2048, LV_ALIGN_OUT_TOP_RIGHT, 0, -10);
 
@@ -69,11 +70,14 @@ void Game2048::run(void)
 
     /*New Game*/
     lv_obj_t * btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_style_bg_color(btn, lv_color_hex(0x3f72af), LV_PART_MAIN);
+    lv_obj_set_size(btn, 130, 100);
     lv_obj_align_to(btn, obj_2048, LV_ALIGN_OUT_TOP_LEFT, 0, -25);
     lv_obj_add_event_cb(btn, new_game_btn_event_handler, LV_EVENT_CLICKED, obj_2048);
 
     label = lv_label_create(btn);
     lv_label_set_text(label, "New Game");
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_22, 0);
     lv_obj_center(label);
 }
 
