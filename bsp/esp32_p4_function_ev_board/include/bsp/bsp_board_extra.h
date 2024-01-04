@@ -18,6 +18,12 @@
 extern "C" {
 #endif
 
+#define CODEC_DEFAULT_SAMPLE_RATE          (16000)
+#define CODEC_DEFAULT_BIT_WIDTH            (16)
+#define CODEC_DEFAULT_ADC_VOLUME           (24.0)
+#define CODEC_DEFAULT_CHANNEL              (2)
+#define CODEC_DEFAULT_VOLUME               (60)
+
 /**
  * @brief Player set mute.
  *
@@ -28,6 +34,22 @@ extern "C" {
  *    - Others: Fail
  */
 esp_err_t bsp_extra_codec_mute_set(bool enable);
+
+/**
+ * @brief Sets the volume intensity.
+ *
+ * @param intensity: volume intensity
+ *
+ */
+void setVolumeIntensity(int intensity);
+
+/**
+ * @brief Retrieves the current volume intensity.
+ *
+ * @return current volume intensity
+ *
+ */
+int getVolumeIntensity();
 
 /**
  * @brief Player set volume.

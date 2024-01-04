@@ -34,12 +34,13 @@ static void new_game_btn_event_handler(lv_event_t * e)
 Game2048::Game2048():
     ESP_UiApp(
         "Game 2048",           // name
-        0,                     // app_table_index
-        true,                  // enable_resource_recycle
-        true,                  // use_scr_act
         &img_app_2048,         // icon
+        0,                     // app_table_index
+        true,                  // use_scr_act
+        true,                  // enable_resource_recycle
         false,                 // use_statusbar
-        true)                  // use_navigation
+        true,                  // use_navigation
+        false)                 // auto_resize_visual_area
 
 {
 }
@@ -50,10 +51,11 @@ Game2048::~Game2048()
 
 }
 
-void Game2048::run(void)
+bool Game2048::run(void)
 {
     /*Create 2048 game*/
     lv_obj_t * obj_2048 = lv_100ask_2048_create(lv_scr_act());
+    lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
 #if LV_FONT_MONTSERRAT_40
     lv_obj_set_style_text_font(obj_2048, &lv_font_montserrat_40, 0);
 #endif
@@ -80,25 +82,33 @@ void Game2048::run(void)
     lv_label_set_text(label, "New Game");
     lv_obj_set_style_text_font(label, &lv_font_montserrat_22, 0);
     lv_obj_center(label);
+
+    return true;
 }
 
 /**
  * @brief The function will be called when the left button of navigate bar is clicked.
  */
-void Game2048::back(void)
+bool Game2048::back(void)
 {
     close();
+
+    return true;
 }
 
 /**
  * @brief The function will be called when app should be closed.
  */
-void Game2048::close(void)
+bool Game2048::close(void)
 {
     notifyManagerClosed();
+
+    return true;
 }
 
-void Game2048::init(void)
+bool Game2048::init(void)
 {
     _status_icon_vector.push_back(&img_app_2048);
+
+    return true;
 }

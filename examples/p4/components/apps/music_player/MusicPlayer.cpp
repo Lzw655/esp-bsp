@@ -19,10 +19,10 @@ LV_IMG_DECLARE(img_music_player_icon);
 MusicPlayer::MusicPlayer(bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Music Player",         // name
-        0,                      // app_table_index
-        true,                   // enable_resource_recycle
-        true,                   // use_scr_act
         &img_music_player_icon, // icon
+        0,                      // app_table_index
+        true,                   // use_scr_act
+        true,                   // enable_resource_recycle
         use_statusbar,          // use_statusbar
         use_navigation,         // use_navigation
         use_navigation || use_statusbar) // auto_resize_visual_area
@@ -33,22 +33,28 @@ MusicPlayer::~MusicPlayer()
 {
 }
 
-void MusicPlayer::run(void)
+bool MusicPlayer::run(void)
 {
     lv_demo_music(lv_scr_act());
+
+    return true;
 }
 
-void MusicPlayer::back(void)
+bool MusicPlayer::back(void)
 {
     close();
+
+    return true;
 }
 
-void MusicPlayer::close(void)
+bool MusicPlayer::close(void)
 {
     notifyManagerClosed();
+
+    return true;
 }
 
-void MusicPlayer::init(void)
+bool MusicPlayer::init(void)
 {
 #if CONFIG_EXAMPLE_USE_SD_CARD
     ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT "/music"));
@@ -57,4 +63,6 @@ void MusicPlayer::init(void)
 #endif
 
     _status_icon_vector.push_back(&img_music_player_icon);
+
+    return true;
 }

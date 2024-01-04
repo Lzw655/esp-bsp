@@ -22,10 +22,10 @@ LV_IMG_DECLARE(img_camera_icon);
 Camera::Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz, bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Camera",               // name
-        0,                      // app_table_index
-        true,                   // enable_resource_recycle
-        false,                  // use_scr_act
         &img_camera_icon,       // icon
+        0,                      // app_table_index
+        false,                  // use_scr_act
+        true,                   // enable_resource_recycle
         use_statusbar,          // use_statusbar
         use_navigation,         // use_navigation
         use_navigation || use_statusbar), // auto_resize_visual_area
@@ -51,7 +51,7 @@ Camera::~Camera()
 {
 }
 
-void Camera::run(void)
+bool Camera::run(void)
 {
     ui_camera_init();
 
@@ -59,7 +59,7 @@ void Camera::run(void)
     if (_img_album_buffer == NULL) {
         ESP_LOGE(TAG, "Allocate memory for album buffer failed");
         notifyManagerClosed();
-        return;
+        return false;
     }
     lv_img_dsc_t img_dsc = {
         .header = {
@@ -110,19 +110,25 @@ void Camera::run(void)
     lv_obj_add_event_cb(ui_ButtonCameraShotBtn, onScreenCameraShotBtnClick, LV_EVENT_CLICKED, this);
 
     _img_refresh_timer = lv_timer_create(onTimerImageRefresh, _refresh_period_ms, this);
+
+    return true;
 }
 
-void Camera::pause(void)
+bool Camera::pause(void)
 {
     lv_timer_pause(_img_refresh_timer);
+
+    return true;
 }
 
-void Camera::resume(void)
+bool Camera::resume(void)
 {
     lv_timer_resume(_img_refresh_timer);
+
+    return true;
 }
 
-void Camera::back(void)
+bool Camera::back(void)
 {
     if (_screen_index == SCREEN_CAMERA_PHOTO) {
         lv_scr_load(ui_ScreenCameraShot);
@@ -130,9 +136,11 @@ void Camera::back(void)
     } else {
         close();
     }
+
+    return true;
 }
 
-void Camera::close(void)
+bool Camera::close(void)
 {
     notifyManagerClosed();
 
@@ -140,9 +148,11 @@ void Camera::close(void)
         heap_caps_free(_img_album_buffer);
         _img_album_buffer = NULL;
     }
+
+    return true;
 }
 
-void Camera::init(void)
+bool Camera::init(void)
 {
     _status_icon_vector.push_back(&img_camera_icon);
 
@@ -170,6 +180,8 @@ void Camera::init(void)
         .data = (const uint8_t *)frame_buffer,
     };
     memcpy(&_img_refresh_dsc, &img_dsc, sizeof(lv_img_dsc_t));
+
+    return true;
 }
 
 void Camera::onScreenCameraShotAlbumClick(lv_event_t *e)

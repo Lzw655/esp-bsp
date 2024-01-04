@@ -13,13 +13,13 @@ public:
     Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz, bool use_statusbar = false, bool use_navigation = false);
     ~Camera();
 
-    void run(void);
-    void pause(void);
-    void resume(void);
-    void back(void);
-    void close(void);
+    bool run(void);
+    bool pause(void);
+    bool resume(void);
+    bool back(void);
+    bool close(void);
 
-    void init(void) override;
+    bool init(void) override;
 
 private:
     static void onScreenCameraShotBtnClick(lv_event_t *e);

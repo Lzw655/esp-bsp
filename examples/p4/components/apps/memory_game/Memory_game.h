@@ -11,9 +11,9 @@ public:
 	Memory_game();
 	~Memory_game();
 
-    void run(void);
-    void back(void);
-    void close(void);
+    bool run(void);
+    bool back(void);
+    bool close(void);
 
-    void init(void) override;
+    bool init(void) override;
 };

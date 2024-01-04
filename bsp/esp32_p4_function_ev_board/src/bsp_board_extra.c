@@ -15,20 +15,26 @@
 
 static const char *TAG = "bsp_extra_board";
 
-#define CODEC_DEFAULT_SAMPLE_RATE          (16000)
-#define CODEC_DEFAULT_BIT_WIDTH            (16)
-#define CODEC_DEFAULT_ADC_VOLUME           (24.0)
-#define CODEC_DEFAULT_CHANNEL              (2)
-#define CODEC_DEFAULT_VOLUME               (60)
-
 static esp_codec_dev_handle_t play_dev_handle;
 static esp_codec_dev_handle_t record_dev_handle;
 
 static file_iterator_instance_t *file_iterator;
 
+static int vloume_intensity = CODEC_DEFAULT_VOLUME;
+
 file_iterator_instance_t *bsp_extra_get_file_instance(void)
 {
     return file_iterator;
+}
+
+void setVolumeIntensity(int intensity)
+{
+    vloume_intensity = intensity;
+}
+
+int getVolumeIntensity()
+{
+    return vloume_intensity;
 }
 
 static esp_err_t audio_mute_function(AUDIO_PLAYER_MUTE_SETTING setting)
@@ -40,7 +46,7 @@ static esp_err_t audio_mute_function(AUDIO_PLAYER_MUTE_SETTING setting)
 
     // restore the voice volume upon unmuting
     if (setting == AUDIO_PLAYER_UNMUTE) {
-        bsp_extra_codec_volume_set(CODEC_DEFAULT_VOLUME, NULL);
+        bsp_extra_codec_volume_set(vloume_intensity, NULL);
     }
 
     return ESP_OK;

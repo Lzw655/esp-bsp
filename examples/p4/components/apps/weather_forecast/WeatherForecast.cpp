@@ -12,14 +12,14 @@ LV_IMG_DECLARE(img_app_weather);
 
 WeatherForecast::WeatherForecast():
     ESP_UiApp(
-        "Weather Forecast",         // name
-        0,                      // app_table_index
-        true,                   // enable_resource_recycle
-        true,                   // use_scr_act
+        "Weather Forecast",     // name
         &img_app_weather,       // icon
+        0,                      // app_table_index
+        true,                   // use_scr_act
+        true,                   // enable_resource_recycle
         false,                  // use_statusbar
-        true)                  // use_navigation
-
+        true,                   // use_navigation
+        false)                  // auto_resize_visual_area
 {
 }
 
@@ -27,22 +27,30 @@ WeatherForecast::~WeatherForecast()
 {
 }
 
-void WeatherForecast::run(void)
+bool WeatherForecast::run(void)
 {
     ui_weather_init();
+
+    return true;
 }
 
-void WeatherForecast::back(void)
+bool WeatherForecast::back(void)
 {
     close();
+
+    return true;
 }
 
-void WeatherForecast::close(void)
+bool WeatherForecast::close(void)
 {
     notifyManagerClosed();
+
+    return true;
 }
 
-void WeatherForecast::init(void)
+bool WeatherForecast::init(void)
 {
     _status_icon_vector.push_back(&img_app_weather);
+
+    return true;
 }

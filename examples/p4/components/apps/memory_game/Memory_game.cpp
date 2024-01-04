@@ -13,12 +13,13 @@ LV_IMG_DECLARE(img_app_memory_game);
 Memory_game::Memory_game():
     ESP_UiApp(
         "Memory game",          // name
-        0,                      // app_table_index
-        true,                   // enable_resource_recycle
-        true,                   // use_scr_act
         &img_app_memory_game,   // icon
+        0,                      // app_table_index
+        true,                   // use_scr_act
+        true,                   // enable_resource_recycle
         false,                  // use_statusbar
-        true)                   // use_navigation
+        true,                   // use_navigation
+        false)                  // auto_resize_visual_area
 
 {
 }
@@ -37,7 +38,7 @@ static void slider_event_cb(lv_event_t * e)
     lv_label_set_text_fmt(level_label, "%d*%d", lv_100ask_memory_game_get_row(memory_game), lv_100ask_memory_game_get_row(memory_game));
 }
 
-void Memory_game::run()
+bool Memory_game::run()
 {
 	lv_obj_t * memory_game = lv_100ask_memory_game_create(lv_scr_act());
     lv_obj_set_size(memory_game, MEMORY_GAME_DEFAULT_WIDTH, MEMORY_GAME_DEFAULT_HEIGHT);
@@ -55,25 +56,33 @@ void Memory_game::run()
     lv_label_set_text_fmt(level_label, "%d*%d", lv_100ask_memory_game_get_row(memory_game), lv_100ask_memory_game_get_row(memory_game));
 
     lv_obj_align_to(level_label, slider, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+
+    return true;
 }
 
 /**
  * @brief The function will be called when the left button of navigate bar is clicked.
  */
-void Memory_game::back(void)
+bool Memory_game::back(void)
 {
     close();
+
+    return true;
 }
 
 /**
  * @brief The function will be called when app should be closed.
  */
-void Memory_game::close(void)
+bool Memory_game::close(void)
 {
     notifyManagerClosed();
+
+    return true;
 }
 
-void Memory_game::init(void)
+bool Memory_game::init(void)
 {
     _status_icon_vector.push_back(&img_app_memory_game);
+
+    return true;
 }
