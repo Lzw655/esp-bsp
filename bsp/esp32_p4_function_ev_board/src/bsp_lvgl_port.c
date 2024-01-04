@@ -651,7 +651,9 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
     lv_init();
     BSP_ERROR_CHECK_RETURN_ERR(tick_init());
     BSP_NULL_CHECK(*disp = display_init(lcd), ESP_FAIL);
-    BSP_NULL_CHECK(*indev = indev_init(tp), ESP_FAIL);
+    if (tp != NULL) {
+        BSP_NULL_CHECK(*indev = indev_init(tp), ESP_FAIL);
+    }
 
     lvgl_mux = xSemaphoreCreateRecursiveMutex();
     BSP_NULL_CHECK(lvgl_mux, ESP_FAIL);
