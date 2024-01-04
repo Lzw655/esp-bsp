@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2021-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2021-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -197,24 +197,6 @@ esp_err_t esp_lcd_new_dsi_panel(const esp_lcd_dsi_panel_config_t *dsi_panel_conf
                                    ((0 & 0x00000001) << 1) | // bit[    1] AUTO_CLKLANE_CTRL     = 0 (Automatic mechanism to stop providing clock in the clock lane when time allows.
                                    ((0 & 0x00000001) << 0);  // bit[    0] TXREQUESTCLKHS        = 1 (Requesting High Speed Clock Transmission.
     // MIPI_DSI_HOST.phy_ulps_ctrl.phy_txrequlpsclk = 1;
-
-#if TEST_DSI_ESCAPE_MODE
-    // 可以断开 clk lane, 观察data lane0 是否进入了escape mode
-    uint16_t data[128];
-
-    ESP_LOGI(TAG, "esacpe mode test");
-
-    for (int x = 0; x < 128; x++) {
-        data[x] = 0x001F;
-    }
-
-    for (int x = 0; x < 100; x++) {
-        // Memory write
-        mipi_dcs_write_data((uint8_t *)data, 128 * 2);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-    mipi_dcs_write_cmd(0x29, 0); //Display ON
-#endif
 #endif
 
     dsi_panel->timings = dsi_panel_config->timings;
@@ -298,6 +280,24 @@ static esp_err_t dsi_panel_init(esp_lcd_panel_t *panel)
 {
     esp_err_t ret = ESP_OK;
     esp_dsi_panel_t *dsi_panel = __containerof(panel, esp_dsi_panel_t, base);
+
+#if !TEST_DSI_LOOPBACK && TEST_DSI_ESCAPE_MODE
+    // 可以断开 clk lane, 观察data lane0 是否进入了escape mode
+    uint16_t data[128];
+
+    ESP_LOGI(TAG, "esacpe mode test");
+
+    for (int x = 0; x < 128; x++) {
+        data[x] = 0x001F;
+    }
+
+    for (int x = 0; x < 100; x++) {
+        // Memory write
+        mipi_dcs_write_data((uint8_t *)data, 128 * 2);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    mipi_dcs_write_cmd(0x29, 0); //Display ON
+#endif
 
     // MIPI_DSI_HOST.phy_ulps_ctrl.phy_txexitulpsclk = 1;
     mipi_dsih_hal_gen_cmd_mode_en(0);

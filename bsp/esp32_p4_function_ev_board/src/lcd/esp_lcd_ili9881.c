@@ -17,167 +17,248 @@ static const char *TAG = "ili9881";
 esp_err_t esp_lcd_new_panel_ili9881(const esp_lcd_panel_io_handle_t io, const esp_lcd_panel_dev_config_t *panel_dev_config,
                                     esp_lcd_panel_handle_t *ret_panel)
 {
+    mipi_dcs_write_cmd(0xFF, 0x03, 0x98, 0x81, 0x01);
 
-    // RDDID: Read Display ID(DAH)
-    // This read byte returns 24-bit display identification information.
-    // The 1 parameter (ID1): the module’s manufacture ID.
-    // The 2 parameter (ID2): the module/driver version ID.
-    // The 3 parameter (ID3): the module/driver ID
     uint8_t ID1, ID2, ID3;
-    mipi_dcs_read_cmd(0xDA, 3, &ID1, &ID2, &ID3);
+    mipi_dcs_read_cmd(0x00, 1, &ID1);
+    mipi_dcs_read_cmd(0x01, 1, &ID2);
+    mipi_dcs_read_cmd(0x02, 1, &ID3);
     ESP_LOGI(TAG, "ID1: 0x%x, ID2: 0x%x, ID3: 0x%x", ID1, ID2, ID3);
 
-    mipi_dcs_write_cmd(0xFF, 0x5, 0xFF, 0x98, 0x06, 0x04, 0x00); // Change to Page 0
-    mipi_dcs_write_cmd(0x20, 0x1, 0x00);
+    //800x1280
+    //VS_VBP_VFP=2/16/16
+    //HS_HBP_HFP=4/138/24
 
-    mipi_dcs_write_cmd(0xFF, 5, 0xFF, 0x98, 0x06, 0x04, 0x01); // Change to Page 1
-    mipi_dcs_write_cmd(0x08, 1, 0x10);                         // output SDA
-    mipi_dcs_write_cmd(0x21, 1, 0x01);                         // DE = 1 Active
-    mipi_dcs_write_cmd(0x30, 1, 0x02);                         // 480 X 800
-    mipi_dcs_write_cmd(0x31, 1, 0x02);                         // 2-Dot Inversion
-    mipi_dcs_write_cmd(0x60, 1, 0x07);                         // SDTI
-    mipi_dcs_write_cmd(0x61, 1, 0x06);                         // CRTI
-    mipi_dcs_write_cmd(0x62, 1, 0x06);                         // EQTI
-    mipi_dcs_write_cmd(0x63, 1, 0x04);                         // PCTI
-    mipi_dcs_write_cmd(0x40, 1, 0x14);                         // BT  +2.5/-2.5 pump for DDVDH-L
-    mipi_dcs_write_cmd(0x41, 1, 0x55);                         // DVDDH DVDDL clamp
-    mipi_dcs_write_cmd(0x42, 1, 0x11);                         // VGH/VGL
-    mipi_dcs_write_cmd(0x43, 1, 0x09);                         // VGH clamp
-    mipi_dcs_write_cmd(0x44, 1, 0x0C);                         // VGL clamp
-    mipi_dcs_write_cmd(0x45, 1, 0x14);                         // VGL_REG  -10V
-    mipi_dcs_write_cmd(0x50, 1, 0x50);                         // VGMP
-    mipi_dcs_write_cmd(0x51, 1, 0x50);                         // VGMN
-    mipi_dcs_write_cmd(0x52, 1, 0x00);                         //Flicker
-    mipi_dcs_write_cmd(0x53, 1, 0x47);                         //Flicker4F
+    mipi_dcs_write_cmd(0xFF, 0x03, 0x98, 0x81, 0x03);
 
-    //++++++++++++++++++ Gamma Setting ++++++++++++++++++//
+    //GIP_1
+    mipi_dcs_write_cmd(0x01, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x02, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x03, 0x01, 0x5D);        //STVA
+    mipi_dcs_write_cmd(0x04, 0x01, 0x17);        //STVB
+    mipi_dcs_write_cmd(0x05, 0x01, 0x00);        //STVC
+    mipi_dcs_write_cmd(0x06, 0x01, 0x0E);        //STVA_Rise
+    mipi_dcs_write_cmd(0x07, 0x01, 0x00);        //STVB_Rise
+    mipi_dcs_write_cmd(0x08, 0x01, 0x00);        //STVC_Rise
+    mipi_dcs_write_cmd(0x09, 0x01, 0x21);        //FTI1R(A) 21
+    mipi_dcs_write_cmd(0x0a, 0x01, 0x21);        //FTI2R(B)
+    mipi_dcs_write_cmd(0x0b, 0x01, 0x00);        //FTI3R(C)
+    mipi_dcs_write_cmd(0x0c, 0x01, 0x06);        //FTI1F(A) 06
+    mipi_dcs_write_cmd(0x0d, 0x01, 0x06);        //FTI2F(B)
+    mipi_dcs_write_cmd(0x0e, 0x01, 0x00);        //FTI2F(C)
+    mipi_dcs_write_cmd(0x0f, 0x01, 0x22);        //CLW1(ALR)  «e«d
+    mipi_dcs_write_cmd(0x10, 0x01, 0x22);        //CLW2(ARR)  «e«d
+    mipi_dcs_write_cmd(0x11, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x12, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x13, 0x01, 0x05);        //CLWX(ATF)  ¦Z«d
+    mipi_dcs_write_cmd(0x14, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x15, 0x01, 0x00);        //GPMRi(ALR)
+    mipi_dcs_write_cmd(0x16, 0x01, 0x00);        //GPMRii(ARR)
+    mipi_dcs_write_cmd(0x17, 0x01, 0x00);        //GPMFi(ALF)
+    mipi_dcs_write_cmd(0x18, 0x01, 0x00);        //GPMFii(AFF)
+    mipi_dcs_write_cmd(0x19, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x1a, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x1b, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x1c, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x1d, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x1e, 0x01, 0x40);        //CLKA 40¦Û°Ê¤Ï C0¤â°Ê¤Ï(X8°Ñ¦ÒCLKB)
+    mipi_dcs_write_cmd(0x1f, 0x01, 0xC0);        //C0
+    mipi_dcs_write_cmd(0x20, 0x01, 0x0E);        //CLKA_Rise
+    mipi_dcs_write_cmd(0x21, 0x01, 0x09);        //CLKA_Fall
+    mipi_dcs_write_cmd(0x22, 0x01, 0x0F);        //CLKB_Rise(keep toggle»Ý³]CLK A«á¤@®æ)
+    mipi_dcs_write_cmd(0x23, 0x01, 0x00);        //CLKB_Fall
+    mipi_dcs_write_cmd(0x24, 0x01, 0x8A);        //CLK keep toggle(AL) 8X©¹¥ª¬Ý
+    mipi_dcs_write_cmd(0x25, 0x01, 0x8A);        //CLK keep toggle(AR) 8X©¹¥ª¬Ý
+    mipi_dcs_write_cmd(0x26, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x27, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x28, 0x01, 0x77);       //CLK Phase  KEEP Toggle 7F
+    mipi_dcs_write_cmd(0x29, 0x01, 0x77);       //CLK overlap
+    mipi_dcs_write_cmd(0x2a, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x2b, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x2c, 0x01, 0x02);      //GCH R
+    mipi_dcs_write_cmd(0x2d, 0x01, 0x02);      //GCL R
+    mipi_dcs_write_cmd(0x2e, 0x01, 0x07);      //GCH F
+    mipi_dcs_write_cmd(0x2f, 0x01, 0x07);      //GCL F
+    mipi_dcs_write_cmd(0x30, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x31, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x32, 0x01, 0x22);       //GCH/L ext2/1¦æ¬°  5E 01:31   5E 00:42
+    mipi_dcs_write_cmd(0x33, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x34, 0x01, 0x00);       //VDD1&2 non-overlap 04:2.62us
+    mipi_dcs_write_cmd(0x35, 0x01, 0x0A);       //GCH/L °Ï¶¡ 00:VS«e 01:VS«á 10:¸óVS 11:frame¤¤
+    mipi_dcs_write_cmd(0x36, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x37, 0x01, 0x08);       //GCH/L
+    mipi_dcs_write_cmd(0x38, 0x01, 0x3C);      //VDD1&2 toggle 1sec
+    mipi_dcs_write_cmd(0x39, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x3a, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x3b, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x3c, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x3d, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x3e, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x3f, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x40, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x41, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x42, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x43, 0x01, 0x08);       //GCH/L
+    mipi_dcs_write_cmd(0x44, 0x01, 0x00);
 
-    mipi_dcs_write_cmd(0xA0, 1, 0x00);  // Gamma 0 /255
-    mipi_dcs_write_cmd(0xA1, 1, 0x09);  // Gamma 4 /251
-    mipi_dcs_write_cmd(0xA2, 1, 0x0C);  // Gamma 8 /247
-    mipi_dcs_write_cmd(0xA3, 1, 0x0F);  // Gamma 16    /239
-    mipi_dcs_write_cmd(0xA4, 1, 0x06);  // Gamma 24 /231
-    mipi_dcs_write_cmd(0xA5, 1, 0x09);  // Gamma 52 / 203
-    mipi_dcs_write_cmd(0xA6, 1, 0x07);  // Gamma 80 / 175
-    mipi_dcs_write_cmd(0xA7, 1, 0x016); // Gamma 108 /147
-    mipi_dcs_write_cmd(0xA8, 1, 0x06);  // Gamma 147 /108
-    mipi_dcs_write_cmd(0xA9, 1, 0x09);  // Gamma 175 / 80
-    mipi_dcs_write_cmd(0xAA, 1, 0x11);  // Gamma 203 / 52
-    mipi_dcs_write_cmd(0xAB, 1, 0x06);  // Gamma 231 / 24
-    mipi_dcs_write_cmd(0xAC, 1, 0x0E);  // Gamma 239 / 16
-    mipi_dcs_write_cmd(0xAD, 1, 0x19);  // Gamma 247 / 8
-    mipi_dcs_write_cmd(0xAE, 1, 0x0C);  // Gamma 251 / 4
-    mipi_dcs_write_cmd(0xAF, 1, 0x00);  // Gamma 255 / 0
+    //GIP_2
+    mipi_dcs_write_cmd(0x50, 0x01, 0x01);
+    mipi_dcs_write_cmd(0x51, 0x01, 0x23);
+    mipi_dcs_write_cmd(0x52, 0x01, 0x45);
+    mipi_dcs_write_cmd(0x53, 0x01, 0x67);
+    mipi_dcs_write_cmd(0x54, 0x01, 0x89);
+    mipi_dcs_write_cmd(0x55, 0x01, 0xAB);
+    mipi_dcs_write_cmd(0x56, 0x01, 0x01);
+    mipi_dcs_write_cmd(0x57, 0x01, 0x23);
+    mipi_dcs_write_cmd(0x58, 0x01, 0x45);
+    mipi_dcs_write_cmd(0x59, 0x01, 0x67);
+    mipi_dcs_write_cmd(0x5a, 0x01, 0x89);
+    mipi_dcs_write_cmd(0x5b, 0x01, 0xAB);
+    mipi_dcs_write_cmd(0x5c, 0x01, 0xCD);
+    mipi_dcs_write_cmd(0x5d, 0x01, 0xEF);
 
-    ///==============Nagitive
-    mipi_dcs_write_cmd(0xC0, 1, 0x00); // Gamma 0 /255
-    mipi_dcs_write_cmd(0xC1, 1, 0x09); // Gamma 4  /251
-    mipi_dcs_write_cmd(0xC2, 1, 0x0C); // Gamma 8  /247
-    mipi_dcs_write_cmd(0xC3, 1, 0x0F); // Gamma 16  /239
-    mipi_dcs_write_cmd(0xC4, 1, 0x06); // Gamma 24  /231
-    mipi_dcs_write_cmd(0xC5, 1, 0x09); // Gamma 52  /203
-    mipi_dcs_write_cmd(0xC6, 1, 0x07); // Gamma 80  /175
-    mipi_dcs_write_cmd(0xC7, 1, 0x16); // Gamma 108  /147
-    mipi_dcs_write_cmd(0xC8, 1, 0x06); // Gamma 147  /108
-    mipi_dcs_write_cmd(0xC9, 1, 0x09); // Gamma 175  /80
-    mipi_dcs_write_cmd(0xCA, 1, 0x11); // Gamma 203  /52
-    mipi_dcs_write_cmd(0xCB, 1, 0x06); // Gamma 231  /24
-    mipi_dcs_write_cmd(0xCC, 1, 0x0E); // Gamma 239  /16
-    mipi_dcs_write_cmd(0xCD, 1, 0x19); // Gamma 247  /8
-    mipi_dcs_write_cmd(0xCE, 1, 0x0C); // Gamma 251  /4
-    mipi_dcs_write_cmd(0xCF, 1, 0x00); // Gamma 255
+    //GIP_3
+    mipi_dcs_write_cmd(0x5e, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x5f, 0x01, 0x02);     //FW_CGOUT_L[1]    VGL
+    mipi_dcs_write_cmd(0x60, 0x01, 0x02);     //FW_CGOUT_L[2]    VGL
+    mipi_dcs_write_cmd(0x61, 0x01, 0x06);     //FW_CGOUT_L[3]    VST_R
+    mipi_dcs_write_cmd(0x62, 0x01, 0x0F);     //FW_CGOUT_L[4]    XCLK_R4
+    mipi_dcs_write_cmd(0x63, 0x01, 0x0F);     //FW_CGOUT_L[5]    XCLK_R4
+    mipi_dcs_write_cmd(0x64, 0x01, 0x13);     //FW_CGOUT_L[6]    CLK_R4
+    mipi_dcs_write_cmd(0x65, 0x01, 0x13);     //FW_CGOUT_L[7]    CLK_R4
+    mipi_dcs_write_cmd(0x66, 0x01, 0x0E);     //FW_CGOUT_L[8]    XCLK_R3
+    mipi_dcs_write_cmd(0x67, 0x01, 0x0E);     //FW_CGOUT_L[9]    XCLK_R3
+    mipi_dcs_write_cmd(0x68, 0x01, 0x12);     //FW_CGOUT_L[10]   CLK_R3
+    mipi_dcs_write_cmd(0x69, 0x01, 0x12);     //FW_CGOUT_L[11]   CLK_R3
+    mipi_dcs_write_cmd(0x6a, 0x01, 0x0D);     //FW_CGOUT_L[12]   XCLK_R2
+    mipi_dcs_write_cmd(0x6b, 0x01, 0x0D);     //FW_CGOUT_L[13]   XCLK_R2
+    mipi_dcs_write_cmd(0x6c, 0x01, 0x11);     //FW_CGOUT_L[14]   CLK_R2
+    mipi_dcs_write_cmd(0x6d, 0x01, 0x11);     //FW_CGOUT_L[15]   CLK_R2
+    mipi_dcs_write_cmd(0x6e, 0x01, 0x0C);     //FW_CGOUT_L[16]   XCLK_R1
+    mipi_dcs_write_cmd(0x6f, 0x01, 0x0C);     //FW_CGOUT_L[17]   XCLK_R1
+    mipi_dcs_write_cmd(0x70, 0x01, 0x10);     //FW_CGOUT_L[18]   CLK_R1
+    mipi_dcs_write_cmd(0x71, 0x01, 0x10);     //FW_CGOUT_L[19]   CLK_R1
+    mipi_dcs_write_cmd(0x72, 0x01, 0x00);     //FW_CGOUT_L[20]   D2U  00
+    mipi_dcs_write_cmd(0x73, 0x01, 0x16);     //FW_CGOUT_L[21]   U2D  01
+    mipi_dcs_write_cmd(0x74, 0x01, 0x08);     //FW_CGOUT_L[22]   VEND
 
-    mipi_dcs_write_cmd(0xFF, 5, 0xFF, 0x98, 0x06, 0x04, 0x07); // Change to Page 7
+    mipi_dcs_write_cmd(0x75, 0x01, 0x02);     //BW_CGOUT_L[1]
+    mipi_dcs_write_cmd(0x76, 0x01, 0x02);     //BW_CGOUT_L[2]
+    mipi_dcs_write_cmd(0x77, 0x01, 0x08);     //BW_CGOUT_L[3]
+    mipi_dcs_write_cmd(0x78, 0x01, 0x0f);     //BW_CGOUT_L[4]
+    mipi_dcs_write_cmd(0x79, 0x01, 0x0f);     //BW_CGOUT_L[5]
+    mipi_dcs_write_cmd(0x7a, 0x01, 0x13);     //BW_CGOUT_L[6]
+    mipi_dcs_write_cmd(0x7b, 0x01, 0x13);     //BW_CGOUT_L[7]
+    mipi_dcs_write_cmd(0x7c, 0x01, 0x0e);     //BW_CGOUT_L[8]
+    mipi_dcs_write_cmd(0x7d, 0x01, 0x0e);     //BW_CGOUT_L[9]
+    mipi_dcs_write_cmd(0x7e, 0x01, 0x12);     //BW_CGOUT_L[10]
+    mipi_dcs_write_cmd(0x7f, 0x01, 0x12);     //BW_CGOUT_L[11]
+    mipi_dcs_write_cmd(0x80, 0x01, 0x0d);     //BW_CGOUT_L[12]
+    mipi_dcs_write_cmd(0x81, 0x01, 0x0d);     //BW_CGOUT_L[13]
+    mipi_dcs_write_cmd(0x82, 0x01, 0x11);     //BW_CGOUT_L[14]
+    mipi_dcs_write_cmd(0x83, 0x01, 0x11);     //BW_CGOUT_L[15]
+    mipi_dcs_write_cmd(0x84, 0x01, 0x0c);     //BW_CGOUT_L[16]
+    mipi_dcs_write_cmd(0x85, 0x01, 0x0c);     //BW_CGOUT_L[17]
+    mipi_dcs_write_cmd(0x86, 0x01, 0x10);     //BW_CGOUT_L[18]
+    mipi_dcs_write_cmd(0x87, 0x01, 0x10);     //BW_CGOUT_L[19]
+    mipi_dcs_write_cmd(0x88, 0x01, 0x17);     //BW_CGOUT_L[20]
+    mipi_dcs_write_cmd(0x89, 0x01, 0x01);     //BW_CGOUT_L[21]
+    mipi_dcs_write_cmd(0x8a, 0x01, 0x06);     //BW_CGOUT_L[22]
 
-    mipi_dcs_write_cmd(0x17, 1, 0x32);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    mipi_dcs_write_cmd(0x06, 1, 0x13);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    //CMD_Page 4
+    mipi_dcs_write_cmd(0xFF, 0x03, 0x98, 0x81, 0x04);
 
-    vTaskDelay(pdMS_TO_TICKS(10));
-    mipi_dcs_write_cmd(0x02, 1, 0x77);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    mipi_dcs_write_cmd(0x6E, 0x01, 0x2A);   //2B        /VGH 15V
+    mipi_dcs_write_cmd(0x6F, 0x01, 0x37);       // reg vcl + pumping ratio VGH=3x VGL=-3x
+    mipi_dcs_write_cmd(0x3A, 0x01, 0xA4);       //POWER SAVING
+    mipi_dcs_write_cmd(0x8D, 0x01, 0x25);       //VGL -13V
+    mipi_dcs_write_cmd(0x87, 0x01, 0xBA);       //ESD
+    mipi_dcs_write_cmd(0xB2, 0x01, 0xD1);
+    mipi_dcs_write_cmd(0x88, 0x01, 0x0B);
+    mipi_dcs_write_cmd(0x38, 0x01, 0x01);
+    mipi_dcs_write_cmd(0x39, 0x01, 0x00);
+    mipi_dcs_write_cmd(0xB5, 0x01, 0x07);       //gamma bias
+    mipi_dcs_write_cmd(0x31, 0x01, 0x75);       //source bias
+    mipi_dcs_write_cmd(0x3B, 0x01, 0x98);
 
-    mipi_dcs_write_cmd(0x18, 1, 0x1D);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    mipi_dcs_write_cmd(0xE1, 1, 0x79);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    //CMD_Page 1
+    mipi_dcs_write_cmd(0xFF, 0x03, 0x98, 0x81, 0x01);
+    mipi_dcs_write_cmd(0x22, 0x01, 0x0A);    //BGR, 0x SS
+    mipi_dcs_write_cmd(0x31, 0x01, 0x0A);    //Z inversion
+    mipi_dcs_write_cmd(0x35, 0x01, 0x07);   //chopper
+    mipi_dcs_write_cmd(0x52, 0x01, 0x00);    //VCOM1[8]
+    mipi_dcs_write_cmd(0x53, 0x01, 0x73);    //VCOM1[7:0]
+    mipi_dcs_write_cmd(0x54, 0x01, 0x00);    //VCOM2[8]
+    mipi_dcs_write_cmd(0x55, 0x01, 0x3D);    //VCOM2[7:0]
+    mipi_dcs_write_cmd(0x50, 0x01, 0xD0);    //VREG1OUT 5.208V
+    mipi_dcs_write_cmd(0x51, 0x01, 0xCB);    //VREG2OUT -5.208V
+    mipi_dcs_write_cmd(0x60, 0x01, 0x14);    //SDT=2.0
+    mipi_dcs_write_cmd(0x62, 0x01, 0x01);    //EQ
+    mipi_dcs_write_cmd(0x63, 0x01, 0x01);    //PC
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++//
+    //============Gamma START=============
 
-    //****************************************************************************//
-    //****************************** Page 6 Command ******************************//
-    //****************************************************************************//
-    mipi_dcs_write_cmd(0xFF, 5, 0xFF, 0x98, 0x06, 0x04, 0x06); // Change to Page 6
-    mipi_dcs_write_cmd(0x00, 1, 0xA0);
-    mipi_dcs_write_cmd(0x01, 1, 0x05);
-    mipi_dcs_write_cmd(0x02, 1, 0x00);
-    mipi_dcs_write_cmd(0x03, 1, 0x00);
-    mipi_dcs_write_cmd(0x04, 1, 0x01);
-    mipi_dcs_write_cmd(0x05, 1, 0x01);
-    mipi_dcs_write_cmd(0x06, 1, 0x88);
-    mipi_dcs_write_cmd(0x07, 1, 0x04);
-    mipi_dcs_write_cmd(0x08, 1, 0x01);
-    mipi_dcs_write_cmd(0x09, 1, 0x90);
-    mipi_dcs_write_cmd(0x0A, 1, 0x04);
-    mipi_dcs_write_cmd(0x0B, 1, 0x01);
-    mipi_dcs_write_cmd(0x0C, 1, 0x01);
-    mipi_dcs_write_cmd(0x0D, 1, 0x01);
-    mipi_dcs_write_cmd(0x0E, 1, 0x00);
-    mipi_dcs_write_cmd(0x0F, 1, 0x00);
-    mipi_dcs_write_cmd(0x10, 1, 0x55);
-    mipi_dcs_write_cmd(0x11, 1, 0x50);
-    mipi_dcs_write_cmd(0x12, 1, 0x01);
-    mipi_dcs_write_cmd(0x13, 1, 0x85);
-    mipi_dcs_write_cmd(0x14, 1, 0x85);
-    mipi_dcs_write_cmd(0x15, 1, 0xC0);
-    mipi_dcs_write_cmd(0x16, 1, 0x0B);
-    mipi_dcs_write_cmd(0x17, 1, 0x00);
-    mipi_dcs_write_cmd(0x18, 1, 0x00);
-    mipi_dcs_write_cmd(0x19, 1, 0x00);
-    mipi_dcs_write_cmd(0x1A, 1, 0x00);
-    mipi_dcs_write_cmd(0x1B, 1, 0x00);
-    mipi_dcs_write_cmd(0x1C, 1, 0x00);
-    mipi_dcs_write_cmd(0x1D, 1, 0x00);
+    //Pos Register
+    mipi_dcs_write_cmd(0xA0, 0x01, 0x00);
+    mipi_dcs_write_cmd(0xA1, 0x01, 0x18);
+    mipi_dcs_write_cmd(0xA2, 0x01, 0x28);
+    mipi_dcs_write_cmd(0xA3, 0x01, 0x17);
+    mipi_dcs_write_cmd(0xA4, 0x01, 0x1C);
+    mipi_dcs_write_cmd(0xA5, 0x01, 0x30);
+    mipi_dcs_write_cmd(0xA6, 0x01, 0x24);
+    mipi_dcs_write_cmd(0xA7, 0x01, 0x24);
+    mipi_dcs_write_cmd(0xA8, 0x01, 0x85);
+    mipi_dcs_write_cmd(0xA9, 0x01, 0x1C);
+    mipi_dcs_write_cmd(0xAA, 0x01, 0x26);
+    mipi_dcs_write_cmd(0xAB, 0x01, 0x66);
+    mipi_dcs_write_cmd(0xAC, 0x01, 0x19);
+    mipi_dcs_write_cmd(0xAD, 0x01, 0x18);
+    mipi_dcs_write_cmd(0xAE, 0x01, 0x4F);
+    mipi_dcs_write_cmd(0xAF, 0x01, 0x24);
+    mipi_dcs_write_cmd(0xB0, 0x01, 0x2B);
+    mipi_dcs_write_cmd(0xB1, 0x01, 0x4A);
+    mipi_dcs_write_cmd(0xB2, 0x01, 0x59);
+    mipi_dcs_write_cmd(0xB3, 0x01, 0x23);
 
-    mipi_dcs_write_cmd(0x20, 1, 0x01);
-    mipi_dcs_write_cmd(0x21, 1, 0x23);
-    mipi_dcs_write_cmd(0x22, 1, 0x45);
-    mipi_dcs_write_cmd(0x23, 1, 0x67);
-    mipi_dcs_write_cmd(0x24, 1, 0x01);
-    mipi_dcs_write_cmd(0x25, 1, 0x23);
-    mipi_dcs_write_cmd(0x26, 1, 0x45);
-    mipi_dcs_write_cmd(0x27, 1, 0x67);
+    mipi_dcs_write_cmd(0xB7, 0x01, 0x03);// SET MIPI DSI 2 Lane mode
 
-    mipi_dcs_write_cmd(0x30, 1, 0x02);
-    mipi_dcs_write_cmd(0x31, 1, 0x22);
-    mipi_dcs_write_cmd(0x32, 1, 0x11);
-    mipi_dcs_write_cmd(0x33, 1, 0xAA);
-    mipi_dcs_write_cmd(0x34, 1, 0xBB);
-    mipi_dcs_write_cmd(0x35, 1, 0x66);
-    mipi_dcs_write_cmd(0x36, 1, 0x00);
-    mipi_dcs_write_cmd(0x37, 1, 0x22);
-    mipi_dcs_write_cmd(0x38, 1, 0x22);
-    mipi_dcs_write_cmd(0x39, 1, 0x22);
-    mipi_dcs_write_cmd(0x3A, 1, 0x22);
-    mipi_dcs_write_cmd(0x3B, 1, 0x22);
-    mipi_dcs_write_cmd(0x3C, 1, 0x22);
-    mipi_dcs_write_cmd(0x3D, 1, 0x22);
-    mipi_dcs_write_cmd(0x3E, 1, 0x22);
-    mipi_dcs_write_cmd(0x3F, 1, 0x22);
-    mipi_dcs_write_cmd(0x40, 1, 0x22);
-    mipi_dcs_write_cmd(0x52, 1, 0x12);
-    mipi_dcs_write_cmd(0x53, 1, 0x12); //VGLO refer VGL_REG   1A
+    //Neg Register
+    mipi_dcs_write_cmd(0xC0, 0x01, 0x00);
+    mipi_dcs_write_cmd(0xC1, 0x01, 0x18);
+    mipi_dcs_write_cmd(0xC2, 0x01, 0x28);
+    mipi_dcs_write_cmd(0xC3, 0x01, 0x17);
+    mipi_dcs_write_cmd(0xC4, 0x01, 0x1B);
+    mipi_dcs_write_cmd(0xC5, 0x01, 0x2F);
+    mipi_dcs_write_cmd(0xC6, 0x01, 0x22);
+    mipi_dcs_write_cmd(0xC7, 0x01, 0x22);
+    mipi_dcs_write_cmd(0xC8, 0x01, 0x87);
+    mipi_dcs_write_cmd(0xC9, 0x01, 0x1C);
+    mipi_dcs_write_cmd(0xCA, 0x01, 0x27);
+    mipi_dcs_write_cmd(0xCB, 0x01, 0x66);
+    mipi_dcs_write_cmd(0xCC, 0x01, 0x19);
+    mipi_dcs_write_cmd(0xCD, 0x01, 0x1A);
+    mipi_dcs_write_cmd(0xCE, 0x01, 0x4E);
+    mipi_dcs_write_cmd(0xCF, 0x01, 0x24);
+    mipi_dcs_write_cmd(0xD0, 0x01, 0x2A);
+    mipi_dcs_write_cmd(0xD1, 0x01, 0x4C);
+    mipi_dcs_write_cmd(0xD2, 0x01, 0x5A);
+    mipi_dcs_write_cmd(0xD3, 0x01, 0x23);
 
-    // //****************************************************************************//
-    // //****************************** Page 0 Command ******************************//
-    // //****************************************************************************//
+    //============ Gamma END===========
 
-    mipi_dcs_write_cmd(0xFF, 5, 0xFF, 0x98, 0x06, 0x04, 0x00); // Change to Page 0
-
-    mipi_dcs_write_cmd(0x11, 1, 0x00); // Sleep-Out
+    //CMD_Page 0
+    mipi_dcs_write_cmd(0xFF, 0x03, 0x98, 0x81, 0x00);
+    mipi_dcs_write_cmd(0x11, 0x01, 0x00);
     vTaskDelay(pdMS_TO_TICKS(120));
-    mipi_dcs_write_cmd(0x29, 1, 0x00); // Display On
+    mipi_dcs_write_cmd(0x29, 0x01, 0x00);
+    mipi_dcs_write_cmd(0x35, 0x01, 0x00);
+
+    switch (16) {
+    case 16: mipi_dcs_write_cmd(0x3A, 0x01, 0x05); break;
+    case 18: mipi_dcs_write_cmd(0x3A, 0x01, 0x06); break;
+    case 24: mipi_dcs_write_cmd(0x3A, 0x01, 0x07); break;
+    }
+    // mipi_dcs_write_cmd(0x0B, 0x01, 0x08);
 
     ESP_LOGI(TAG, "Init done");
 

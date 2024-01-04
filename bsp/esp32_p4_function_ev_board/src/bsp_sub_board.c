@@ -82,7 +82,9 @@ esp_err_t bsp_display_new(const bsp_display_config_t *config, esp_lcd_panel_hand
     BSP_ERROR_CHECK_RETURN_ERR(esp_lcd_new_dsi_panel(&panel_config, ret_panel));
     esp_lcd_panel_reset(*ret_panel);
 
+#if !TEST_DSI_LOOPBACK
     esp_lcd_new_panel_ili9881(NULL, NULL, NULL);
+#endif
 
     esp_lcd_panel_init(*ret_panel);
 

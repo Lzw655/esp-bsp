@@ -14,7 +14,7 @@ dependencies:
     git: "https://github.com/esp-arduino-libs/ESP32_UI.git"
 
   ESP32_UI_APP:
-    version: master
+    version: test_add_apps
     git: "https://github.com/esp-arduino-libs/ESP32_UI_APP.git"
 
   apps:
