@@ -72,30 +72,30 @@ extern "C" void app_main(void)
     bsp_display_unlock();
 
     static char buffer[2048];
-    while (1) {
-#if LOG_SYSTEM_INFO
-        sprintf(buffer, "\t  Biggest /     Free /    Total\n"
-                " SRAM : [%8d / %8d / %8d]\n"
-                "PSRAM : [%8d / %8d / %8d]\n",
-                heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
-                heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-                heap_caps_get_total_size(MALLOC_CAP_INTERNAL),
-                heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
-                heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-                heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
-        printf("------------ Memory ------------\n");
-        printf("%s\n", buffer);
+//     while (1) {
+// #if LOG_SYSTEM_INFO
+//         sprintf(buffer, "\t  Biggest /     Free /    Total\n"
+//                 " SRAM : [%8d / %8d / %8d]\n"
+//                 "PSRAM : [%8d / %8d / %8d]\n",
+//                 heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+//                 heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+//                 heap_caps_get_total_size(MALLOC_CAP_INTERNAL),
+//                 heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+//                 heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+//                 heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
+//         printf("------------ Memory ------------\n");
+//         printf("%s\n", buffer);
 
-        ESP_ERROR_CHECK(print_real_time_mem_stats());
-        printf("\n");
-#endif
+//         ESP_ERROR_CHECK(print_real_time_mem_stats());
+//         printf("\n");
+// #endif
 
-#if LOG_MIPI_FRAME
-        ESP_LOGI(TAG, "DSI: %d, CSI: %d", dw_gdma_mipi_dsi_get_frame_count(), dw_gdma_mipi_csi_get_frame_count());
-#endif
+// #if LOG_MIPI_FRAME
+//         ESP_LOGI(TAG, "DSI: %d, CSI: %d", dw_gdma_mipi_dsi_get_frame_count(), dw_gdma_mipi_csi_get_frame_count());
+// #endif
 
-        vTaskDelay(pdMS_TO_TICKS(LOG_TIME_INTERVAL_MS));
-    }
+//         vTaskDelay(pdMS_TO_TICKS(LOG_TIME_INTERVAL_MS));
+//     }
 }
 
 #if LOG_SYSTEM_INFO
