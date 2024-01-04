@@ -20,7 +20,7 @@
 
 #define LOG_SYSTEM_INFO         (1)
 #define LOG_MIPI_FRAME          (0)
-#define LOG_TIME_INTERVAL_MS    (10000)
+#define LOG_TIME_INTERVAL_MS    (2000)
 
 static const char *TAG = "main";
 
@@ -38,6 +38,7 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(bsp_spiffs_mount());
     ESP_LOGI(TAG, "SPIFFS mount successfully");
 #endif
+    ESP_ERROR_CHECK(bsp_extra_codec_init());
 
     bsp_display_start();
 

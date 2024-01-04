@@ -1,6 +1,5 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/portmacro.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_log.h"
@@ -21,7 +20,7 @@
 
 #define LOG_SYSTEM_INFO         (1)
 #define LOG_MIPI_FRAME          (0)
-#define LOG_TIME_INTERVAL_MS    (10000)
+#define LOG_TIME_INTERVAL_MS    (2000)
 
 static const char *TAG = "main";
 
@@ -39,6 +38,7 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(bsp_spiffs_mount());
     ESP_LOGI(TAG, "SPIFFS mount successfully");
 #endif
+    ESP_ERROR_CHECK(bsp_extra_codec_init());
 
     bsp_display_start();
 
@@ -66,10 +66,6 @@ extern "C" void app_main(void)
     bsp_display_unlock();
 
     static char buffer[2048];
-
-    // portMUX_TYPE lock = {0};
-    // lock.owner = portMUX_FREE_VAL;
-
     while (1) {
 #if LOG_SYSTEM_INFO
         sprintf(buffer, "\t  Biggest /     Free /    Total\n"
@@ -91,11 +87,6 @@ extern "C" void app_main(void)
 #if LOG_MIPI_FRAME
         ESP_LOGI(TAG, "DSI: %d, CSI: %d", dw_gdma_mipi_dsi_get_frame_count(), dw_gdma_mipi_csi_get_frame_count());
 #endif
-        // taskENTER_CRITICAL(&lock);
-
-        // buffer[0] = '\0';
-
-        // taskEXIT_CRITICAL(&lock);
 
         vTaskDelay(pdMS_TO_TICKS(LOG_TIME_INTERVAL_MS));
     }

@@ -36,9 +36,9 @@
 #include "bsp/esp32_p4_function_ev_board.h"
 #include "esp_lcd_panel_dsi.h"
 
-#define TEST_INTERRUPT    (0)
-#define TEST_PPA          (0)
-#define LV_USE_GPU        (0)
+#define TEST_INTERRUPT    (1)
+#define TEST_PPA          (1)
+#define LV_USE_GPU        (1)
 
 #define LVGL_DISP_HSIZE   (BSP_LCD_H_RES)
 #define LVGL_DISP_VSIZE   (BSP_LCD_V_RES)

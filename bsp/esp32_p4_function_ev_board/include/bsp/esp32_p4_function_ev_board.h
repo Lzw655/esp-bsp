@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -273,7 +273,8 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void);
  *
  */
 /* LVGL related parameters */
-#define LVGL_TICK_PERIOD_MS         (CONFIG_BSP_DISPLAY_LVGL_TICK)
+// #define LVGL_TICK_PERIOD_MS         (CONFIG_BSP_DISPLAY_LVGL_TICK)
+#define LVGL_TICK_PERIOD_MS         (2)
 #define LVGL_BUFFER_HEIGHT          (CONFIG_BSP_DISPLAY_LVGL_BUF_HEIGHT)
 #if CONFIG_BSP_DISPLAY_LVGL_PSRAM
 #define LVGL_BUFFER_MALLOC          (MALLOC_CAP_SPIRAM)
@@ -281,9 +282,12 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void);
 #define LVGL_BUFFER_MALLOC          (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
 #endif
 #define LVGL_TASK_CORE_ID           (CONFIG_BSP_DISPLAY_LVGL_TASK_CORE_ID)
+// #define LVGL_TASK_CORE_ID           (1)
 #define LVGL_TASK_STACK_SIZE_KB     (CONFIG_BSP_DISPLAY_LVGL_TASK_STACK_SIZE_KB)
 #define LVGL_TASK_PRIORITY          (CONFIG_BSP_DISPLAY_LVGL_TASK_PRIORITY)
-#define LVGL_TASK_DELAY             (CONFIG_BSP_DISPLAY_LVGL_TASK_DELAY)
+// #define LVGL_TASK_PRIORITY          (4)
+// #define LVGL_TASK_DELAY             (CONFIG_BSP_DISPLAY_LVGL_TASK_DELAY)
+#define LVGL_TASK_DELAY             (2)
 
 #define BSP_LCD_H_RES   bsp_display_get_h_res()
 #define BSP_LCD_V_RES   bsp_display_get_v_res()
