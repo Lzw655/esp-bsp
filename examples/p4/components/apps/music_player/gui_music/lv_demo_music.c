@@ -8,7 +8,7 @@
  *********************/
 #include "lv_demo_music.h"
 
-#if LV_USE_DEMO_MUSIC
+#if APP_USE_DEMO_MUSIC
 
 #include "lv_demo_music_main.h"
 #include "lv_demo_music_list.h"
@@ -24,7 +24,7 @@
 /**********************
  *  STATIC PROTOTYPES
  **********************/
-#if LV_DEMO_MUSIC_AUTO_PLAY
+#if MUSIC_DEMO_MUSIC_AUTO_PLAY
 static void auto_step_cb(lv_timer_t *timer);
 #endif
 
@@ -120,7 +120,7 @@ void lv_demo_music(lv_obj_t *parent)
     list = _lv_demo_music_list_create(parent);
     ctrl = _lv_demo_music_main_create(parent);
 
-#if LV_DEMO_MUSIC_AUTO_PLAY
+#if MUSIC_DEMO_MUSIC_AUTO_PLAY
     lv_timer_create(auto_step_cb, 1000, NULL);
 #endif
 }
@@ -161,13 +161,13 @@ uint32_t _lv_demo_music_get_track_length(uint32_t track_id)
  *   STATIC FUNCTIONS
  **********************/
 
-#if LV_DEMO_MUSIC_AUTO_PLAY
+#if MUSIC_DEMO_MUSIC_AUTO_PLAY
 static void auto_step_cb(lv_timer_t *t)
 {
     LV_UNUSED(t);
     static uint32_t state = 0;
 
-#if LV_DEMO_MUSIC_LARGE
+#if APP_DEMO_MUSIC_LARGE
     const lv_font_t *font_small = &lv_font_montserrat_22;
     const lv_font_t *font_large = &lv_font_montserrat_32;
 #else
@@ -189,7 +189,7 @@ static void auto_step_cb(lv_timer_t *t)
     case 8:
         _lv_demo_music_play(0);
         break;
-#if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
+#if MUSIC_DEMO_MUSIC_SQUARE || MUSIC_DEMO_MUSIC_ROUND
     case 11:
         lv_obj_scroll_by(ctrl, 0, -LV_VER_RES, LV_ANIM_ON);
         break;
@@ -213,7 +213,7 @@ static void auto_step_cb(lv_timer_t *t)
     case 19:
         lv_obj_scroll_by(ctrl, 0, LV_VER_RES, LV_ANIM_ON);
         break;
-#if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
+#if MUSIC_DEMO_MUSIC_SQUARE || MUSIC_DEMO_MUSIC_ROUND
     case 20:
         lv_obj_scroll_by(ctrl, 0, LV_VER_RES, LV_ANIM_ON);
         break;
@@ -242,7 +242,7 @@ static void auto_step_cb(lv_timer_t *t)
         lv_obj_t *attr = lv_label_create(bg);
         lv_obj_set_style_text_align(attr, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_font(attr, font_small, 0);
-#if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
+#if MUSIC_DEMO_MUSIC_SQUARE || MUSIC_DEMO_MUSIC_ROUND
         lv_label_set_text(attr, "Copyright 2020 LVGL Kft.\nwww.lvgl.io | lvgl@lvgl.io");
 #else
         lv_label_set_text(attr, "Copyright 2020 LVGL Kft. | www.lvgl.io | lvgl@lvgl.io");
@@ -258,6 +258,6 @@ static void auto_step_cb(lv_timer_t *t)
     state++;
 }
 
-#endif /*LV_DEMO_MUSIC_AUTO_PLAY*/
+#endif /*MUSIC_DEMO_MUSIC_AUTO_PLAY*/
 
-#endif /*LV_USE_DEMO_MUSIC*/
+#endif /*APP_USE_DEMO_MUSIC*/

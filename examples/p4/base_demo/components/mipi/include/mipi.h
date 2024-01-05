@@ -23,7 +23,7 @@ extern "C" {
 #define BOARD_TYPE_SAMPLE       (2)
 
 /* Change this macro to choose the target board */
-#define BOARD_TYPE              (BOARD_TYPE_FLY_LINE)
+#define BOARD_TYPE              (BOARD_TYPE_SAMPLE)
 
 #define TEST_DISP_PATTERN   (0)
 

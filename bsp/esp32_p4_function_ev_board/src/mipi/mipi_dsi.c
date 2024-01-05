@@ -15,7 +15,7 @@
 
 #include "mipi_dsi.h"
 
-const char *TAG = "mipi_dsi";
+static const char *TAG = "mipi_dsi";
 
 static uint16_t DPI_HSA = 0;
 static uint16_t DPI_HBP = 0;

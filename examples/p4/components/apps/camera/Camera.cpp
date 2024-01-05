@@ -158,7 +158,10 @@ bool Camera::init(void)
 
     size_t frame_buffer_size = _hor_res * _ver_res * sizeof(lv_color_t);
     uint8_t *frame_buffer = (uint8_t *)heap_caps_aligned_alloc(64, frame_buffer_size, MALLOC_CAP_SPIRAM);
-    assert(frame_buffer != NULL);
+    if (frame_buffer == NULL) {
+        ESP_LOGE(TAG, "Allocate memory for frame buffer failed");
+        return false;
+    }
 
     bsp_camera_config_t camera_cfg = {
         .hor_res = _hor_res,

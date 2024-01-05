@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef LV_DEMO_MUSIC_MAIN_H
-#define LV_DEMO_MUSIC_MAIN_H
+#ifndef MUSIC_DEMO_MUSIC_MAIN_H
+#define MUSIC_DEMO_MUSIC_MAIN_H
 
 #include "lvgl.h"
 
@@ -17,7 +17,7 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
-#if LV_USE_DEMO_MUSIC
+#if APP_USE_DEMO_MUSIC
 
 /*********************
  *      DEFINES
@@ -40,11 +40,11 @@ void _lv_demo_music_album_next(bool next);
 /**********************
  *      MACROS
  **********************/
-#endif /*LV_USE_DEMO_MUSIC*/
+#endif /*APP_USE_DEMO_MUSIC*/
 
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /*LV_DEMO_MUSIC_MAIN_H*/
+#endif /*MUSIC_DEMO_MUSIC_MAIN_H*/

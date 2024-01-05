@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef LV_DEMO_MUSIC_H
-#define LV_DEMO_MUSIC_H
+#ifndef MUSIC_DEMO_MUSIC_H
+#define MUSIC_DEMO_MUSIC_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,19 +15,19 @@ extern "C" {
  *********************/
 #include "lvgl.h"
 
-#define LV_USE_DEMO_MUSIC       1
-#define LV_DEMO_MUSIC_LARGE     1
+#define APP_USE_DEMO_MUSIC       1
+#define APP_DEMO_MUSIC_LARGE     1
 
-#if LV_USE_DEMO_MUSIC
+#if APP_USE_DEMO_MUSIC
 
 /*********************
  *      DEFINES
  *********************/
 
-#if LV_DEMO_MUSIC_LARGE
-#  define LV_DEMO_MUSIC_HANDLE_SIZE  40
+#if APP_DEMO_MUSIC_LARGE
+#  define MUSIC_DEMO_MUSIC_HANDLE_SIZE  40
 #else
-#  define LV_DEMO_MUSIC_HANDLE_SIZE  20
+#  define MUSIC_DEMO_MUSIC_HANDLE_SIZE  20
 #endif
 
 /**********************
@@ -48,10 +48,10 @@ uint32_t _lv_demo_music_get_track_length(uint32_t track_id);
  *      MACROS
  **********************/
 
-#endif /*LV_USE_DEMO_MUSIC*/
+#endif /*APP_USE_DEMO_MUSIC*/
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /*LV_DEMO_MUSIC_H*/
+#endif /*MUSIC_DEMO_MUSIC_H*/

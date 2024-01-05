@@ -41,7 +41,7 @@ void lv_style_pre_init()
     static const lv_font_t *font_medium;
 
     ESP_LOGI(TAG, "style init");
-#if LV_DEMO_MUSIC_LARGE
+#if APP_DEMO_MUSIC_LARGE
     font_small = &lv_font_montserrat_16;
     font_medium = &lv_font_montserrat_22;
 #else
@@ -50,7 +50,7 @@ void lv_style_pre_init()
 #endif
 
     static const lv_coord_t grid_cols[] = {LV_GRID_CONTENT, LV_GRID_FR(1), LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
-#if LV_DEMO_MUSIC_LARGE
+#if APP_DEMO_MUSIC_LARGE
     static const lv_coord_t grid_rows[] = {35,  30, LV_GRID_TEMPLATE_LAST};
 #else
     static const lv_coord_t grid_rows[] = {22,  17, LV_GRID_TEMPLATE_LAST};

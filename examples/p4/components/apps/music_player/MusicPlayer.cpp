@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "esp_check.h"
 #include "sdkconfig.h"
 #include "bsp/esp-bsp.h"
 #include "bsp/bsp_board_extra.h"
@@ -57,9 +58,15 @@ bool MusicPlayer::close(void)
 bool MusicPlayer::init(void)
 {
 #if CONFIG_EXAMPLE_USE_SD_CARD
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SD_MOUNT_POINT "/music"));
+    if (bsp_extra_player_init(BSP_SD_MOUNT_POINT "/music") != ESP_OK) {
+        ESP_LOGE(TAG, "Play init with SD failed");
+        return false;
+    }
 #else
-    ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT "/music"));
+    if (bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT "/music") != ESP_OK) {
+        ESP_LOGE(TAG, "Play init with SPIFFS failed");
+        return false;
+    }
 #endif
 
     _status_icon_vector.push_back(&img_app_music_player);

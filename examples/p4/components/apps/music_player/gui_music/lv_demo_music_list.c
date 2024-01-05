@@ -8,7 +8,7 @@
  *********************/
 #include "lv_example_pub.h"
 #include "lv_demo_music_list.h"
-#if LV_USE_DEMO_MUSIC
+#if APP_USE_DEMO_MUSIC
 
 #include "lv_demo_music_main.h"
 
@@ -43,7 +43,7 @@ LV_IMG_DECLARE(img_lv_demo_music_btn_list_pause);
 
 lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
 {
-#if LV_DEMO_MUSIC_LARGE
+#if APP_DEMO_MUSIC_LARGE
     lv_style_set_pad_right(&style_btn, 30);
 #else
     lv_style_set_pad_right(&style_btn, 20);
@@ -51,8 +51,8 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
     /*Create an empty transparent container*/
     list = lv_obj_create(parent);
     lv_obj_remove_style_all(list);
-    lv_obj_set_size(list, LV_HOR_RES, LV_VER_RES - LV_DEMO_MUSIC_HANDLE_SIZE);
-    lv_obj_set_y(list, LV_DEMO_MUSIC_HANDLE_SIZE);
+    lv_obj_set_size(list, LV_HOR_RES, LV_VER_RES - MUSIC_DEMO_MUSIC_HANDLE_SIZE);
+    lv_obj_set_y(list, MUSIC_DEMO_MUSIC_HANDLE_SIZE);
     lv_obj_add_style(list, &style_scrollbar, LV_PART_SCROLLBAR);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
 
@@ -61,7 +61,7 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
         add_list_btn(list,  track_id);
     }
 
-#if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
+#if MUSIC_DEMO_MUSIC_SQUARE || MUSIC_DEMO_MUSIC_ROUND
     lv_obj_set_scroll_snap_y(list, LV_SCROLL_SNAP_CENTER);
 #endif
 
@@ -99,7 +99,7 @@ static lv_obj_t *add_list_btn(lv_obj_t *parent, uint32_t track_id)
 
     lv_obj_t *btn = lv_obj_create(parent);
     lv_obj_remove_style_all(btn);
-#if LV_DEMO_MUSIC_LARGE
+#if APP_DEMO_MUSIC_LARGE
     lv_obj_set_size(btn, lv_pct(100), 110);
 #else
     lv_obj_set_size(btn, lv_pct(100), 60);
@@ -153,4 +153,4 @@ static void btn_click_event_cb(lv_event_t *e)
 
     _lv_demo_music_play(idx);
 }
-#endif /*LV_USE_DEMO_MUSIC*/
+#endif /*APP_USE_DEMO_MUSIC*/

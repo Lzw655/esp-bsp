@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef LV_DEMO_MUSIC_LIST_H
-#define LV_DEMO_MUSIC_LIST_H
+#ifndef MUSIC_DEMO_MUSIC_LIST_H
+#define MUSIC_DEMO_MUSIC_LIST_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,7 +14,7 @@ extern "C" {
  *      INCLUDES
  *********************/
 #include "lv_demo_music.h"
-#if LV_USE_DEMO_MUSIC
+#if APP_USE_DEMO_MUSIC
 
 /*********************
  *      DEFINES
@@ -34,10 +34,10 @@ void _lv_demo_music_list_btn_check(uint32_t track_id, bool state);
  *      MACROS
  **********************/
 
-#endif /*LV_USE_DEMO_MUSIC*/
+#endif /*APP_USE_DEMO_MUSIC*/
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /*LV_DEMO_MUSIC_LIST_H*/
+#endif /*MUSIC_DEMO_MUSIC_LIST_H*/
