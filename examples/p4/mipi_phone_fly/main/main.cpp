@@ -11,6 +11,7 @@
 #include "bsp/bsp_board_extra.h"
 #include "bsp/display.h"
 #include "bsp_lcd.h"
+#include "lv_demos.h"
 
 #include "ESP_UI.h"
 #include "ESP_UI_APP.h"
@@ -41,6 +42,7 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(bsp_extra_codec_init());
 
     bsp_display_start();
+    bsp_display_backlight_on();
 
     bsp_display_lock(0);
 
@@ -56,12 +58,19 @@ extern "C" void app_main(void)
     // eui->enableDebugMode();
     eui->enableGesture(bsp_display_get_input_dev());
     eui->begin();
-    // eui->printFormatData();
+    eui->printFormatData();
 
     eui->installApp(new LVGLDemos(false, true));
     eui->installApp(new SmartGadget(false, true));
     eui->installApp(new MusicPlayer(false, true));
     eui->installApp(new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0, false, true));
+
+    eui->installApp(new Calculator());
+    eui->installApp(new Game2048());
+    eui->installApp(new Memory_game());
+    eui->installApp(new Setting());
+    eui->installApp(new Sketchpad());
+    eui->installApp(new WeatherForecast());
 
     bsp_display_unlock();
 

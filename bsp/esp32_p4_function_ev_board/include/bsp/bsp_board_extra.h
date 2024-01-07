@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2015-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,22 +36,6 @@ extern "C" {
 esp_err_t bsp_extra_codec_mute_set(bool enable);
 
 /**
- * @brief Sets the volume intensity.
- *
- * @param intensity: volume intensity
- *
- */
-void setVolumeIntensity(int intensity);
-
-/**
- * @brief Retrieves the current volume intensity.
- *
- * @return current volume intensity
- *
- */
-int getVolumeIntensity();
-
-/**
  * @brief Player set volume.
  *
  * @param volume: volume set
@@ -62,6 +46,8 @@ int getVolumeIntensity();
  *    - Others: Fail
  */
 esp_err_t bsp_extra_codec_volume_set(int volume, int *volume_set);
+
+int bsp_extra_codec_volume_get(void);
 
 /**
  * @brief Stop I2S function.

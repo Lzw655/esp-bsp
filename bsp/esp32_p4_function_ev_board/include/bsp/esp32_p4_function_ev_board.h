@@ -83,6 +83,14 @@
 #define BSP_SD_CLK              (GPIO_NUM_43)
 #define BSP_SD_CMD              (GPIO_NUM_44)
 
+/* Display */
+#if CONFIG_BSP_BOARD_TYPE_FLY_LINE
+#define BSP_LCD_BACKLIGHT       (GPIO_NUM_NC)
+#else
+#define BSP_LCD_BACKLIGHT       (GPIO_NUM_22)
+#endif
+#define LCD_LEDC_CH             1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -350,6 +358,8 @@ lv_indev_t *bsp_display_get_input_dev(void);
  *      - ESP_ERR_NOT_SUPPORTED: Always
  */
 esp_err_t bsp_display_brightness_set(int brightness_percent);
+
+int bsp_display_brightness_get(void);
 
 /**
  * @brief Turn on display backlight (Useless, just for compatibility)

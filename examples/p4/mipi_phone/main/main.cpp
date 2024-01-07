@@ -41,6 +41,7 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(bsp_extra_codec_init());
 
     bsp_display_start();
+    bsp_display_backlight_on();
 
     bsp_display_lock(0);
 
