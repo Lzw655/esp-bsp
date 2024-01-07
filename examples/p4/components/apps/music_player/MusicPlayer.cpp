@@ -13,6 +13,8 @@
 
 #include "MusicPlayer.h"
 
+#define TAG     name().c_str()
+
 using namespace std;
 
 LV_IMG_DECLARE(img_app_music_player);
@@ -20,7 +22,7 @@ LV_IMG_DECLARE(img_app_music_player);
 MusicPlayer::MusicPlayer(bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Music Player",         // name
-        &img_app_music_player, // icon
+        &img_app_music_player,  // icon
         0,                      // app_table_index
         true,                   // use_scr_act
         true,                   // enable_resource_recycle

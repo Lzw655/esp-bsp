@@ -138,8 +138,12 @@ void Setting::homeRefreshTask(void *arg)
             total_sram_size_kb = heap_caps_get_total_size(MALLOC_CAP_INTERNAL) / 1024;
             free_psram_size_kb = heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024;
             total_psram_size_kb = heap_caps_get_total_size(MALLOC_CAP_SPIRAM) / 1024;
-            if (!app->_home->setBackstageMemoryLabel(free_sram_size_kb, total_sram_size_kb,
-                                                    free_psram_size_kb, total_psram_size_kb)) {
+            ESP_LOGI(app->name().c_str(), "Free sram size: %d KB, total sram size: %d KB, "
+                     "free psram size: %d KB, total psram size: %d KB",
+                     free_sram_size_kb, total_sram_size_kb, free_psram_size_kb, total_psram_size_kb);
+
+            if (!app->_home->setBackstageMemoryLabel(free_sram_size_kb, free_psram_size_kb,
+                                                    total_sram_size_kb, total_psram_size_kb)) {
                 ESP_LOGE(app->name().c_str(), "Set backstage memory label failed");
             }
         }

@@ -13,7 +13,6 @@ extern "C" {
     #include "lvgl.h"
 
 #include "ui_helpers.h"
-#include "ui_events.h"
 // SCREEN: ui_ScreenSettingMain
 void ui_ScreenSettingMain_screen_init(void);
 extern lv_obj_t *ui_ScreenSettingMain;
