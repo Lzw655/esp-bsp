@@ -14,12 +14,12 @@
 
 using namespace std;
 
-LV_IMG_DECLARE(img_music_player_icon);
+LV_IMG_DECLARE(img_app_music_player);
 
 MusicPlayer::MusicPlayer(bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Music Player",         // name
-        &img_music_player_icon, // icon
+        &img_app_music_player, // icon
         0,                      // app_table_index
         true,                   // use_scr_act
         true,                   // enable_resource_recycle
@@ -62,7 +62,7 @@ bool MusicPlayer::init(void)
     ESP_ERROR_CHECK(bsp_extra_player_init(BSP_SPIFFS_MOUNT_POINT "/music"));
 #endif
 
-    _status_icon_vector.push_back(&img_music_player_icon);
+    _status_icon_vector.push_back(&img_app_music_player);
 
     return true;
 }

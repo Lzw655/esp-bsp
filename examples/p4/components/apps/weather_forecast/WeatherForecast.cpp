@@ -12,7 +12,7 @@ LV_IMG_DECLARE(img_app_weather);
 
 WeatherForecast::WeatherForecast():
     ESP_UiApp(
-        "Weather Forecast",     // name
+        "Weather",     // name
         &img_app_weather,       // icon
         0,                      // app_table_index
         true,                   // use_scr_act

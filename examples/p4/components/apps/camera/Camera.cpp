@@ -17,12 +17,12 @@ using namespace std;
 
 static const char *TAG = "Camera";
 
-LV_IMG_DECLARE(img_camera_icon);
+LV_IMG_DECLARE(img_app_camera);
 
 Camera::Camera(uint16_t hor_res, uint16_t ver_res, uint16_t refresh_hz, bool use_statusbar, bool use_navigation):
     ESP_UiApp(
         "Camera",               // name
-        &img_camera_icon,       // icon
+        &img_app_camera,       // icon
         0,                      // app_table_index
         false,                  // use_scr_act
         true,                   // enable_resource_recycle
@@ -154,7 +154,7 @@ bool Camera::close(void)
 
 bool Camera::init(void)
 {
-    _status_icon_vector.push_back(&img_camera_icon);
+    _status_icon_vector.push_back(&img_app_camera);
 
     size_t frame_buffer_size = _hor_res * _ver_res * sizeof(lv_color_t);
     uint8_t *frame_buffer = (uint8_t *)heap_caps_aligned_alloc(64, frame_buffer_size, MALLOC_CAP_SPIRAM);

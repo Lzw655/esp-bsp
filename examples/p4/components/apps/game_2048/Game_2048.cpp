@@ -33,7 +33,7 @@ static void new_game_btn_event_handler(lv_event_t * e)
 
 Game2048::Game2048():
     ESP_UiApp(
-        "Game 2048",           // name
+        "2048 Game",           // name
         &img_app_2048,         // icon
         0,                     // app_table_index
         true,                  // use_scr_act

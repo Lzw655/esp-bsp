@@ -12,7 +12,7 @@ LV_IMG_DECLARE(img_app_memory_game);
 
 Memory_game::Memory_game():
     ESP_UiApp(
-        "Memory game",          // name
+        "Memory Game",          // name
         &img_app_memory_game,   // icon
         0,                      // app_table_index
         true,                   // use_scr_act
