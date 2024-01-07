@@ -36,442 +36,437 @@
 #include "bsp/esp32_p4_function_ev_board.h"
 #include "esp_lcd_panel_dsi.h"
 
-#define TEST_INTERRUPT    (1)
-#define TEST_PPA          (1)
-#define LV_USE_GPU        (1)
-
-#define LVGL_DISP_HSIZE   (BSP_LCD_H_RES)
-#define LVGL_DISP_VSIZE   (BSP_LCD_V_RES)
-
-#define DMA2D_IN_CH0_INTR_SOURCE     (((INTERRUPT_CORE0_DMA2D_IN_CH0_INT_MAP_REG - DR_REG_INTERRUPT_CORE0_BASE) / 4))
-#define DMA2D_IN_CH1_INTR_SOURCE     (((INTERRUPT_CORE0_DMA2D_IN_CH1_INT_MAP_REG - DR_REG_INTERRUPT_CORE0_BASE) / 4))
-
-typedef struct {
-    struct {
-        uint8_t *cache;
-        uint8_t *dma;
-        uint32_t size;
-    } buffer[3];
-} ppa_test_t;
-
-ppa_test_t ppa_test = {0};
 
 static const char *TAG = "bsp_lvgl_port";
 static SemaphoreHandle_t lvgl_mux;                  // LVGL mutex
 static TaskHandle_t lvgl_task_handle = NULL;
 
-static lldesc_dma2d_t *rx_link[4], * tx_link[4];
+#if CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR
+#if CONFIG_BSP_DISPLAY_LVGL_DIRECT_MODE
+typedef struct {
+    uint16_t inv_p;
+    uint8_t inv_area_joined[LV_INV_BUF_SIZE];
+    lv_area_t inv_areas[LV_INV_BUF_SIZE];
+} lv_port_dirty_area_t;
 
-static SemaphoreHandle_t dma2d_in_ch0_sem;
-static SemaphoreHandle_t dma2d_in_ch1_sem;
+static lv_port_dirty_area_t dirty_area;
 
-typedef lv_draw_sw_ctx_t lv_draw_ppa_ctx_t;
-
-#if TEST_INTERRUPT
-static void dma2d_ch0_isr(void *arg)
+static void flush_dirty_save(lv_port_dirty_area_t *dirty_area)
 {
-    (void)arg;
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    typeof(DMA2D.in_ch0.int_st) in_ch0_status = DMA2D.in_ch0.int_st;
-    if (in_ch0_status.val != 0) {
-        DMA2D.in_ch0.int_clr.val = in_ch0_status.val;
-        // ets_printf("dma in intr: 0x%x\n", (int)in_status.val);
-        // handle RX interrupt */
-        if (in_ch0_status.in_suc_eof) {
-            xSemaphoreGiveFromISR( dma2d_in_ch0_sem, &xHigherPriorityTaskWoken );
+    lv_disp_t *disp = _lv_refr_get_disp_refreshing();
+    dirty_area->inv_p = disp->inv_p;
+    for (int i = 0; i < disp->inv_p; i++) {
+        dirty_area->inv_area_joined[i] = disp->inv_area_joined[i];
+        dirty_area->inv_areas[i] = disp->inv_areas[i];
+    }
+}
+
+typedef enum {
+    FLUSH_STATUS_PART,
+    FLUSH_STATUS_FULL
+} lv_port_flush_status_t;
+
+typedef enum {
+    FLUSH_PROBE_PART_COPY,
+    FLUSH_PROBE_SKIP_COPY,
+    FLUSH_PROBE_FULL_COPY,
+} lv_port_flush_probe_t;
+
+/**
+ * @brief Probe dirty area to copy
+ *
+ * @note This function is used to avoid tearing effect, and only work with LVGL direct-mode.
+ *
+ */
+static lv_port_flush_probe_t flush_copy_probe(lv_disp_drv_t *drv)
+{
+    static lv_port_flush_status_t prev_status = FLUSH_PROBE_PART_COPY;
+    lv_port_flush_status_t cur_status;
+    uint8_t probe_result;
+    lv_disp_t *disp_refr = _lv_refr_get_disp_refreshing();
+
+    uint32_t flush_ver = 0;
+    uint32_t flush_hor = 0;
+    for (int i = 0; i < disp_refr->inv_p; i++) {
+        if (disp_refr->inv_area_joined[i] == 0) {
+            flush_ver = (disp_refr->inv_areas[i].y2 + 1 - disp_refr->inv_areas[i].y1);
+            flush_hor = (disp_refr->inv_areas[i].x2 + 1 - disp_refr->inv_areas[i].x1);
+            break;
+        }
+    }
+    /* Check if the current full screen refreshes */
+    cur_status = ((flush_ver == drv->ver_res) && (flush_hor == drv->hor_res)) ? (FLUSH_STATUS_FULL) : (FLUSH_STATUS_PART);
+
+    if (prev_status == FLUSH_STATUS_FULL) {
+        if ((cur_status == FLUSH_STATUS_PART)) {
+            probe_result = FLUSH_PROBE_FULL_COPY;
+        } else {
+            probe_result = FLUSH_PROBE_SKIP_COPY;
+        }
+    } else {
+        probe_result = FLUSH_PROBE_PART_COPY;
+    }
+    prev_status = cur_status;
+
+    return probe_result;
+}
+
+#if CONFIG_BSP_DISPLAY_LVGL_ROTATION_DEGREE != 0
+static inline void *flush_get_next_buf(void *panel_handle)
+{
+    return get_next_frame_buffer(panel_handle);
+}
+
+/**
+ * @brief Copy dirty area
+ *
+ * @note This function is used to avoid tearing effect, and only work with LVGL direct-mode.
+ *
+ */
+static void flush_dirty_copy(void *dst, void *src, lv_port_dirty_area_t *dirty_area)
+{
+    lv_coord_t x_start, x_end, y_start, y_end;
+    for (int i = 0; i < dirty_area->inv_p; i++) {
+        /* Refresh the unjoined areas*/
+        if (dirty_area->inv_area_joined[i] == 0) {
+            x_start = dirty_area->inv_areas[i].x1;
+            x_end = dirty_area->inv_areas[i].x2;
+            y_start = dirty_area->inv_areas[i].y1;
+            y_end = dirty_area->inv_areas[i].y2;
+
+            rotate_copy_pixel(src, dst, x_start, y_start, x_end, y_end, LV_HOR_RES, LV_VER_RES, CONFIG_BSP_DISPLAY_LVGL_ROTATION_DEGREE);
+        }
+    }
+}
+
+static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    const int offsetx1 = area->x1;
+    const int offsetx2 = area->x2;
+    const int offsety1 = area->y1;
+    const int offsety2 = area->y2;
+    void *next_fb = NULL;
+    lv_port_flush_probe_t probe_result = FLUSH_PROBE_PART_COPY;
+    lv_disp_t *disp_refr = _lv_refr_get_disp_refreshing();
+
+    /* Action after last area refresh */
+    if (lv_disp_flush_is_last(drv)) {
+        /* Check if the `full_refresh` flag has been triggered */
+        if (drv->full_refresh) {
+            /* Reset flag */
+            drv->full_refresh = 0;
+
+            // Roate and copy data from the whole screen LVGL's buffer to the next frame buffer
+            next_fb = flush_get_next_buf(panel_handle);
+            rotate_copy_pixel((uint16_t *)color_map, next_fb, offsetx1, offsety1, offsetx2, offsety2, LV_HOR_RES, LV_VER_RES, CONFIG_BSP_DISPLAY_LVGL_ROTATION_DEGREE);
+
+            /* Switch the current RGB frame buffer to `next_fb` */
+            esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, next_fb);
+
+            /* Waiting for the current frame buffer to complete transmission */
+            ulTaskNotifyValueClear(NULL, ULONG_MAX);
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+            /* Synchronously update the dirty area for another frame buffer */
+            flush_dirty_copy(flush_get_next_buf(panel_handle), color_map, &dirty_area);
+            flush_get_next_buf(panel_handle);
+        } else {
+            /* Probe the copy method for the current dirty area */
+            probe_result = flush_copy_probe(drv);
+
+            if (probe_result == FLUSH_PROBE_FULL_COPY) {
+                /* Save current dirty area for next frame buffer */
+                flush_dirty_save(&dirty_area);
+
+                /* Set LVGL full-refresh flag and set flush ready in advance */
+                drv->full_refresh = 1;
+                disp_refr->rendering_in_progress = 0;
+                lv_disp_flush_ready(drv);
+
+                /* Force to refresh whole screen, and will invoke `flush_callback` recursively */
+                lv_refr_now(disp_refr);
+            } else {
+                /* Update current dirty area for next frame buffer */
+                next_fb = flush_get_next_buf(panel_handle);
+                flush_dirty_save(&dirty_area);
+                flush_dirty_copy(next_fb, color_map, &dirty_area);
+
+                /* Switch the current RGB frame buffer to `next_fb` */
+                esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, next_fb);
+
+                /* Waiting for the current frame buffer to complete transmission */
+                ulTaskNotifyValueClear(NULL, ULONG_MAX);
+                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+                if (probe_result == FLUSH_PROBE_PART_COPY) {
+                    /* Synchronously update the dirty area for another frame buffer */
+                    flush_dirty_save(&dirty_area);
+                    flush_dirty_copy(flush_get_next_buf(panel_handle), color_map, &dirty_area);
+                    flush_get_next_buf(panel_handle);
+                }
+            }
         }
     }
 
-    portYIELD_FROM_ISR();
+    lv_disp_flush_ready(drv);
+}
+#else
+static inline void *flush_get_next_buf(void *buf)
+{
+    lv_disp_t *disp = _lv_refr_get_disp_refreshing();
+    lv_disp_draw_buf_t *draw_buf = disp->driver->draw_buf;
+    return (buf == draw_buf->buf1) ? draw_buf->buf2 : draw_buf->buf1;
 }
 
-static void dma2d_ch1_isr(void *arg)
+/**
+ * @brief Copy dirty area
+ *
+ * @note This function is used to avoid tearing effect, and only work with LVGL direct-mode.
+ *
+ */
+static void flush_dirty_copy(void *dst, void *src, lv_port_dirty_area_t *dirty_area)
 {
-    (void)arg;
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    typeof(DMA2D.in_ch1.int_st) in_ch1_status = DMA2D.in_ch1.int_st;
-    if (in_ch1_status.val != 0) {
-        DMA2D.in_ch1.int_clr.val = in_ch1_status.val;
-        // ets_printf("dma in intr: 0x%x\n", (int)in_status.val);
-        // handle RX interrupt */
-        if (in_ch1_status.in_suc_eof) {
-            xSemaphoreGiveFromISR( dma2d_in_ch1_sem, &xHigherPriorityTaskWoken );
+    lv_coord_t x_start, x_end, y_start, y_end;
+    uint32_t copy_bytes_per_line;
+    uint32_t h_res = LV_HOR_RES;
+    uint32_t bytes_per_line = h_res * 2;
+    uint8_t *from, *to;
+    for (int i = 0; i < dirty_area->inv_p; i++) {
+        /* Refresh the unjoined areas*/
+        if (dirty_area->inv_area_joined[i] == 0) {
+            x_start = dirty_area->inv_areas[i].x1;
+            x_end = dirty_area->inv_areas[i].x2 + 1;
+            y_start = dirty_area->inv_areas[i].y1;
+            y_end = dirty_area->inv_areas[i].y2 + 1;
+
+            copy_bytes_per_line = (x_end - x_start) * 2;
+            from = src + (y_start * h_res + x_start) * 2;
+            to = dst + (y_start * h_res + x_start) * 2;
+            for (int y = y_start; y < y_end; y++) {
+                memcpy(to, from, copy_bytes_per_line);
+                from += bytes_per_line;
+                to += bytes_per_line;
+            }
         }
     }
-    portYIELD_FROM_ISR();
-}
-#endif
-
-static void flush_callback(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
-{
-    esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)disp_drv->user_data;
-    if (panel == NULL) {
-        ESP_LOGE(TAG, "Invalid panel handle");
-        return;
-    }
-
-#if !TEST_PPA
-    esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, color_p);
-
-#else
-    uint32_t len = (sizeof(lv_color_t) * ((area->y2 - area->y1 + 1) * (area->x2 - area->x1 + 1)));
-    void *dsi_frame_buf = NULL;
-    ESP_ERROR_CHECK(esp_lcd_dsi_panel_get_frame_buffer(panel, 1, &dsi_frame_buf));
-
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, color_p, len);
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, color_p, len);
-
-    int hb = area->x2 - area->x1 + 1;
-    int vb = area->y2 - area->y1 + 1;
-
-    dma2d_link_dscr_init(rx_link[0], NULL, color_p, hb, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
-    dma2d_link_dscr_init(tx_link[0], NULL, dsi_frame_buf, LVGL_DISP_HSIZE, LVGL_DISP_VSIZE, hb, vb, 1, 1, DMA2D_COLOR_MODE(TEST_DSI_COLOR_WIDTH), 0, area->x1, area->y1);
-
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
-
-    PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
-    PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
-
-    DMA2D.out_ch[0].conf0.out_rst = 1;
-    DMA2D.out_ch[0].conf0.out_rst = 0;
-    DMA2D.in_ch0.conf0.in_rst = 1;
-    DMA2D.in_ch0.conf0.in_rst = 0;
-    //start
-    DMA2D.out_ch[0].int_clr.val = ~0;
-    DMA2D.in_ch0.int_clr.val = ~0;
-    DMA2D.in_ch0.int_ena.val = ~0;
-    DMA2D.out_ch[0].link_conf.outlink_start = 0x1;
-    DMA2D.in_ch0.link_conf.inlink_start = 0x1;
-
-    //--configure display, scaler/rorate
-    PPA.sr_byte_order.sr_rx_byte_swap_en = 0;
-    PPA.sr_byte_order.sr_rx_rgb_swap_en = 0;
-    PPA.sr_byte_order.sr_macro_bk_ro_bypass = 0;
-    PPA.sr_color_mode.sr_rx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.sr_color_mode.sr_tx_cm = PPA_COLOR_MODE(TEST_DSI_COLOR_WIDTH);
-    PPA.sr_scal_rotate.sr_rotate_angle = 0;
-    PPA.sr_scal_rotate.sr_scal_x_int = 1;
-    PPA.sr_scal_rotate.sr_scal_x_frag = 0;
-    PPA.sr_scal_rotate.sr_scal_y_int = 1;
-    PPA.sr_scal_rotate.sr_scal_y_frag = 0;
-
-    //--start scaler rotate
-    PPA.sr_scal_rotate.scal_rotate_start = 0x1;
-#if TEST_INTERRUPT
-    xSemaphoreTake(dma2d_in_ch0_sem, portMAX_DELAY);
-#else
-    while (!DMA2D.in_int_raw_ch0.suc_eof);
-#endif
-#endif
-    lv_disp_flush_ready(disp_drv);
 }
 
-
-/*OPTIONAL: GPU INTERFACE*/
-#if LV_USE_GPU
-
-/* If your MCU has hardware accelerator (GPU) then you can use it to blend to memories using opacity
- * It can be used only in buffered mode (LV_VDB_SIZE != 0 in lv_conf.h)*/
-static void ppa_blend(lv_color_t *dest_buf, const lv_area_t *dest_area, lv_coord_t dest_stride,
-                      const lv_color_t *src_buf, lv_coord_t src_stride, lv_opa_t opa)
+static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
-    /*It's an example code which should be done by your GPU*/
-    uint32_t i;
-#if !TEST_PPA
-    for (i = 0; i < length; i++) {
-        dest[i] = lv_color_mix(dest[i], src[i], opa);
-    }
-#else
-    int hb = dest_area->x2 - dest_area->x1 + 1;
-    int vb = dest_area->y2 - dest_area->y1 + 1;
-    // dest_buf += dest_stride * dest_area->y1; /*Go to the first line*/
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    const int offsetx1 = area->x1;
+    const int offsetx2 = area->x2;
+    const int offsety1 = area->y1;
+    const int offsety2 = area->y2;
+    lv_port_flush_probe_t probe_result;
+    lv_disp_t *disp_refr = _lv_refr_get_disp_refreshing();
 
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t));
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t));
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, src_buf, src_stride * vb * sizeof(lv_color_t));
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, src_buf, src_stride * vb * sizeof(lv_color_t));
+    /* Action after last area refresh */
+    if (lv_disp_flush_is_last(drv)) {
+        /* Check if the `full_refresh` flag has been triggered */
+        if (drv->full_refresh) {
+            /* Reset flag */
+            drv->full_refresh = 0;
 
-    // printf("len: %d, opa: %d\n", length, opa);
-    dma2d_link_dscr_init(rx_link[1], NULL, src_buf, src_stride, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
-    dma2d_link_dscr_init(rx_link[2], NULL, dest_buf, dest_stride, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
-    dma2d_link_dscr_init(tx_link[1], NULL, dest_buf, dest_stride, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
+            /* Switch the current RGB frame buffer to `color_map` */
+            esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
 
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
+            /* Waiting for the last frame buffer to complete transmission */
+            ulTaskNotifyValueClear(NULL, ULONG_MAX);
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    PPA.blend_trans_mode.blend_rst = 0x1;
-    PPA.blend_trans_mode.blend_rst = 0x0;
+            /* Synchronously update the dirty area for another frame buffer */
+            flush_dirty_copy(flush_get_next_buf(color_map), color_map, &dirty_area);
+            drv->draw_buf->buf_act = (color_map == drv->draw_buf->buf1) ? drv->draw_buf->buf2 : drv->draw_buf->buf1;
+        } else {
+            /* Probe the copy method for the current dirty area */
+            probe_result = flush_copy_probe(drv);
 
-    //start
-    DMA2D.out_ch[1].int_clr.val = ~0;
-    DMA2D.out_ch[2].int_clr.val = ~0;
-    DMA2D.in_ch1.int_clr.val = ~0;
-    DMA2D.in_ch1.int_ena.val = ~0;
-    DMA2D.out_ch[1].link_conf.outlink_start = 0x1;
-    DMA2D.out_ch[2].link_conf.outlink_start = 0x1;
-    DMA2D.in_ch1.link_conf.inlink_start = 0x1;
+            if (probe_result == FLUSH_PROBE_FULL_COPY) {
+                /* Save current dirty area for next frame buffer */
+                flush_dirty_save(&dirty_area);
 
-    //--configure display
-    PPA.blend_byte_order.blend0_rx_byte_swap_en = 0x0;
-    PPA.blend_byte_order.blend1_rx_byte_swap_en = 0x0;
-    PPA.blend_byte_order.blend0_rx_rgb_swap_en = 0x0;
-    PPA.blend_byte_order.blend1_rx_rgb_swap_en = 0x0;
-    PPA.blend_fix_alpha.blend0_rx_fix_alpha = opa;
-    PPA.blend_fix_alpha.blend0_rx_alpha_mod = 0x1;
-    PPA.blend_fix_alpha.blend0_rx_alpha_inv = 0x0;
-    PPA.blend_fix_alpha.blend1_rx_fix_alpha = 255 - opa;
-    PPA.blend_fix_alpha.blend1_rx_alpha_mod = 0x1;
-    PPA.blend_fix_alpha.blend1_rx_alpha_inv = 0x0;
-    PPA.blend_color_mode.blend0_rx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.blend_color_mode.blend1_rx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.blend_color_mode.blend_tx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
+                /* Set LVGL full-refresh flag and set flush ready in advance */
+                drv->full_refresh = 1;
+                disp_refr->rendering_in_progress = 0;
+                lv_disp_flush_ready(drv);
 
-    PPA.blend_trans_mode.blend_bypass = 0x0;
-    PPA.blend_trans_mode.blend_fix_pixel_fill_en = 0x0;
+                /* Force to refresh whole screen, and will invoke `flush_callback` recursively */
+                lv_refr_now(disp_refr);
+            } else {
+                /* Switch the current RGB frame buffer to `color_map` */
+                esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
 
-    PPA.blend_trans_mode.blend_en = 0x1;
-    PPA.blend_trans_mode.blend_trans_mode_update = 0x1;
+                /* Waiting for the last frame buffer to complete transmission */
+                ulTaskNotifyValueClear(NULL, ULONG_MAX);
+                ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-#if TEST_INTERRUPT
-    xSemaphoreTake(dma2d_in_ch1_sem, portMAX_DELAY);
-#else
-    while (!DMA2D.in_int_raw_ch1.suc_eof);
-#endif
-
-    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t));
-    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_stride * vb * sizeof(lv_color_t));
-#endif
-}
-
-static void ppa_fill(lv_color_t *dest_buf, lv_coord_t dest_width, const lv_area_t *fill_area, lv_color_t color)
-{
-    int hb = fill_area->x2 - fill_area->x1 + 1;
-    int vb = fill_area->y2 - fill_area->y1 + 1;
-    dest_buf += dest_width * fill_area->y1; /*Go to the first line*/
-
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_width * vb * sizeof(lv_color_t));
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_width * vb * sizeof(lv_color_t));
-
-#if 1   // ppa_blend fill 填充
-
-    dma2d_link_dscr_init(tx_link[1], NULL, dest_buf, dest_width, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, fill_area->x1, 0);
-
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
-
-    PPA.blend_trans_mode.blend_rst = 0x1;
-    PPA.blend_trans_mode.blend_rst = 0x0;
-
-    DMA2D.out_ch[1].conf0.out_rst = 1;
-    DMA2D.out_ch[1].conf0.out_rst = 0;
-    DMA2D.out_ch[2].conf0.out_rst = 1;
-    DMA2D.out_ch[2].conf0.out_rst = 0;
-    DMA2D.in_ch1.conf0.in_rst = 1;
-    DMA2D.in_ch1.conf0.in_rst = 0;
-    //start
-    DMA2D.out_ch[1].int_clr.val = ~0;
-    DMA2D.out_ch[2].int_clr.val = ~0;
-    DMA2D.in_ch1.int_clr.val = ~0;
-    DMA2D.in_ch1.int_ena.val = 0;
-    DMA2D.out_ch[1].link_conf.outlink_start = 0x0;
-    DMA2D.out_ch[2].link_conf.outlink_start = 0x0;
-    DMA2D.in_ch1.link_conf.inlink_start = 0x1;
-
-    //--configure display
-    PPA.blend_byte_order.blend0_rx_byte_swap_en = 0x0;
-    PPA.blend_byte_order.blend1_rx_byte_swap_en = 0x0;
-    PPA.blend_byte_order.blend0_rx_rgb_swap_en = 0x0;
-    PPA.blend_byte_order.blend1_rx_rgb_swap_en = 0x0;
-    PPA.blend_fix_alpha.blend0_rx_fix_alpha = 0x0;
-    PPA.blend_fix_alpha.blend0_rx_alpha_mod = 0x0;
-    PPA.blend_fix_alpha.blend0_rx_alpha_inv = 0x0;
-    PPA.blend_fix_alpha.blend1_rx_fix_alpha = 0x0;
-    PPA.blend_fix_alpha.blend1_rx_alpha_mod = 0x0;
-    PPA.blend_fix_alpha.blend1_rx_alpha_inv = 0x0;
-    PPA.blend_fix_pixel = lv_color_to32(color);
-    PPA.blend_tx_size.blend_hb = hb;
-    PPA.blend_tx_size.blend_vb = vb;
-    PPA.blend_color_mode.blend0_rx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.blend_color_mode.blend1_rx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.blend_color_mode.blend_tx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.blend_trans_mode.blend_bypass = 0x0;
-    PPA.blend_trans_mode.blend_fix_pixel_fill_en = 0x1;
-
-    PPA.blend_trans_mode.blend_en = 0x1;
-    PPA.blend_trans_mode.blend_trans_mode_update = 0x1;
-
-    while (!DMA2D.in_ch1.int_raw.in_done);
-#else
-
-#endif
-
-    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_buf, dest_width * vb * sizeof(lv_color_t));
-    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_buf, dest_width * vb * sizeof(lv_color_t));
-}
-
-void lv_draw_ppa_buffer_copy(lv_draw_ctx_t *draw_ctx,
-                             void *dest_buf, lv_coord_t dest_stride, const lv_area_t *dest_area,
-                             void *src_buf, lv_coord_t src_stride, const lv_area_t *src_area)
-{
-    LV_UNUSED(draw_ctx);
-#if !TEST_PPA
-    lv_draw_sw_buffer_copy(draw_ctx,
-                           dest_buf, dest_stride, dest_area,
-                           src_buf, src_stride, src_area);
-#else
-    printf("lv_draw_ppa_buffer_copy\n");
-    lv_color_t *dest_bufc =  dest_buf;
-    lv_color_t *src_bufc =  src_buf;
-
-    /*Got the first pixel of each buffer*/
-    dest_bufc += dest_stride * dest_area->y1;
-    dest_bufc += dest_area->x1;
-
-    src_bufc += src_stride * src_area->y1;
-    src_bufc += src_area->x1;
-
-    int hb = dest_area->x2 - dest_area->x1 + 1;
-    int vb = dest_area->y2 - dest_area->y1 + 1;
-    int len = hb * vb * sizeof(lv_color_t);
-    float scal_x = 1;
-    float scal_y = 1;
-
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, src_bufc, len);
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, src_bufc, len);
-    Cache_WriteBack_Addr(CACHE_MAP_L1_DCACHE, dest_bufc, len);
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE, dest_bufc, len);
-
-    dma2d_link_dscr_init(rx_link[0], NULL, src_bufc, hb, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
-    dma2d_link_dscr_init(tx_link[0], NULL, dest_bufc, hb, vb, hb, vb, 1, 1, DMA2D_COLOR_MODE(LV_COLOR_DEPTH), 0, 0, 0);
-
-    Cache_WriteBack_Addr(CACHE_MAP_L2_CACHE | CACHE_MAP_L1_DCACHE, ppa_test.buffer[0].cache, 1024);
-
-    PPA.sr_scal_rotate.scal_rotate_rst = 0x1;
-    PPA.sr_scal_rotate.scal_rotate_rst = 0x0;
-
-    DMA2D.out_ch[0].conf0.out_rst = 1;
-    DMA2D.out_ch[0].conf0.out_rst = 0;
-    DMA2D.in_ch0.conf0.in_rst = 1;
-    DMA2D.in_ch0.conf0.in_rst = 0;
-    //start
-    DMA2D.out_ch[0].int_clr.val = ~0;
-    DMA2D.in_ch0.int_clr.val = ~0;
-    DMA2D.in_ch0.int_ena.val = ~0;
-    DMA2D.out_ch[0].link_conf.outlink_start = 0x1;
-    DMA2D.in_ch0.link_conf.inlink_start = 0x1;
-
-    //--configure display, scaler/rorate
-    PPA.sr_byte_order.sr_rx_byte_swap_en = 0;
-    PPA.sr_byte_order.sr_rx_rgb_swap_en = 0;
-    PPA.sr_byte_order.sr_macro_bk_ro_bypass = 0;
-    PPA.sr_color_mode.sr_rx_cm = PPA_COLOR_MODE(LV_COLOR_DEPTH);
-    PPA.sr_color_mode.sr_tx_cm = PPA_COLOR_MODE(TEST_DSI_COLOR_WIDTH);
-    PPA.sr_scal_rotate.sr_rotate_angle = 0;
-    PPA.sr_scal_rotate.sr_scal_x_int = (uint8_t)scal_x;
-    PPA.sr_scal_rotate.sr_scal_x_frag = (uint8_t)(scal_x * 16) % 16;
-    PPA.sr_scal_rotate.sr_scal_y_int = (uint8_t)scal_y;
-    PPA.sr_scal_rotate.sr_scal_y_frag = (uint8_t)(scal_y * 16) % 16;
-
-    //--start scaler rotate
-    PPA.sr_scal_rotate.scal_rotate_start = 0x1;
-#if TEST_INTERRUPT
-    xSemaphoreTake(dma2d_in_ch0_sem, portMAX_DELAY);
-#else
-    while (!DMA2D.in_int_raw_ch0.suc_eof);
-#endif
-    Cache_Invalidate_Addr(CACHE_MAP_L2_CACHE, dest_bufc, len);
-    Cache_Invalidate_Addr(CACHE_MAP_L1_DCACHE, dest_bufc, len);
-#endif
-}
-
-void lv_draw_ppa_blend(lv_draw_ctx_t *draw_ctx, const lv_draw_sw_blend_dsc_t *dsc)
-{
-    lv_area_t blend_area;
-    if (!_lv_area_intersect(&blend_area, dsc->blend_area, draw_ctx->clip_area)) {
-        return;
-    }
-
-    bool done = false;
-
-    if (dsc->mask_buf == NULL && lv_area_get_size(&blend_area) > 100) {
-        lv_coord_t dest_stride = lv_area_get_width(draw_ctx->buf_area);
-
-        lv_color_t *dest_buf = draw_ctx->buf;
-        dest_buf += dest_stride * (blend_area.y1 - draw_ctx->buf_area->y1) + (blend_area.x1 - draw_ctx->buf_area->x1);
-
-        const lv_color_t *src_buf = dsc->src_buf;
-        if (src_buf) {
-            lv_coord_t src_stride;
-            src_stride = lv_area_get_width(dsc->blend_area);
-            src_buf += src_stride * (blend_area.y1 - dsc->blend_area->y1) + (blend_area.x1 -  dsc->blend_area->x1);
-            lv_area_move(&blend_area, -draw_ctx->buf_area->x1, -draw_ctx->buf_area->y1);
-            ppa_blend(dest_buf, &blend_area, dest_stride, src_buf, src_stride, dsc->opa);
-            done = true;
-        } else if (dsc->opa >= LV_OPA_MAX) {
-            lv_area_move(&blend_area, -draw_ctx->buf_area->x1, -draw_ctx->buf_area->y1);
-            ppa_fill(draw_ctx->buf, dest_stride, &blend_area, dsc->color);
-            done = true;
+                if (probe_result == FLUSH_PROBE_PART_COPY) {
+                    /* Synchronously update the dirty area for another frame buffer */
+                    flush_dirty_save(&dirty_area);
+                    flush_dirty_copy(flush_get_next_buf(color_map), color_map, &dirty_area);
+                }
+            }
         }
     }
 
-    if (!done) {
-        lv_draw_sw_blend_basic(draw_ctx, dsc);
+    lv_disp_flush_ready(drv);
+}
+#endif /* CONFIG_BSP_DISPLAY_LVGL_ROTATION_DEGREE */
+
+#elif CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH && CONFIG_BSP_DISPLAY_LCD_BUFFER_NUMS == 2
+
+static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    const int offsetx1 = area->x1;
+    const int offsetx2 = area->x2;
+    const int offsety1 = area->y1;
+    const int offsety2 = area->y2;
+
+    /* Switch the current RGB frame buffer to `color_map` */
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+
+    /* Waiting for the last frame buffer to complete transmission */
+    ulTaskNotifyValueClear(NULL, ULONG_MAX);
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    lv_disp_flush_ready(drv);
+}
+
+#elif CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH && CONFIG_BSP_DISPLAY_LCD_BUFFER_NUMS == 3
+
+static void *lvgl_port_rgb_last_buf = NULL;
+static void *lvgl_port_rgb_next_buf = NULL;
+static void *lvgl_port_flush_next_buf = NULL;
+
+void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    const int offsetx1 = area->x1;
+    const int offsetx2 = area->x2;
+    const int offsety1 = area->y1;
+    const int offsety2 = area->y2;
+
+    drv->draw_buf->buf1 = color_map;
+    drv->draw_buf->buf2 = lvgl_port_flush_next_buf;
+    lvgl_port_flush_next_buf = color_map;
+
+    /* Switch the current RGB frame buffer to `color_map` */
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+
+    lvgl_port_rgb_next_buf = color_map;
+
+    lv_disp_flush_ready(drv);
+}
+#endif
+
+IRAM_ATTR static bool lcd_trans_done(esp_lcd_panel_handle_t handle)
+{
+    BaseType_t need_yield = pdFALSE;
+#if CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH && (CONFIG_BSP_DISPLAY_LCD_BUFFER_NUMS == 3)
+    if (lvgl_port_rgb_next_buf != lvgl_port_rgb_last_buf) {
+        lvgl_port_flush_next_buf = lvgl_port_rgb_last_buf;
+        lvgl_port_rgb_last_buf = lvgl_port_rgb_next_buf;
+    }
+#else
+    // Notify that the current RGB frame buffer has been transmitted
+    xTaskNotifyFromISR(lvgl_task_handle, ULONG_MAX, eNoAction, &need_yield);
+#endif
+    return (need_yield == pdTRUE);
+}
+
+#else
+
+void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    const int offsetx1 = area->x1;
+    const int offsetx2 = area->x2;
+    const int offsety1 = area->y1;
+    const int offsety2 = area->y2;
+
+    /* Just copy data from the color map to the RGB frame buffer */
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+
+    lv_disp_flush_ready(drv);
+}
+
+#endif /* CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR */
+
+static void update_callback(lv_disp_drv_t *drv)
+{
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+
+    switch (drv->rotated) {
+    case LV_DISP_ROT_NONE:
+        esp_lcd_panel_swap_xy(panel_handle, false);
+        esp_lcd_panel_mirror(panel_handle, false, false);
+        break;
+    case LV_DISP_ROT_90:
+        esp_lcd_panel_swap_xy(panel_handle, true);
+        esp_lcd_panel_mirror(panel_handle, false, true);
+        break;
+    case LV_DISP_ROT_180:
+        esp_lcd_panel_swap_xy(panel_handle, false);
+        esp_lcd_panel_mirror(panel_handle, true, true);
+        break;
+    case LV_DISP_ROT_270:
+        esp_lcd_panel_swap_xy(panel_handle, true);
+        esp_lcd_panel_mirror(panel_handle, true, false);
+        break;
     }
 }
-
-void lv_draw_ppa_ctx_init(lv_disp_drv_t *drv, lv_draw_ctx_t *draw_ctx)
-{
-
-    lv_draw_sw_init_ctx(drv, draw_ctx);
-
-    lv_draw_ppa_ctx_t *ppa_draw_ctx = (lv_draw_sw_ctx_t *)draw_ctx;
-
-    ppa_draw_ctx->blend = lv_draw_ppa_blend;
-    ppa_draw_ctx->base_draw.buffer_copy = lv_draw_ppa_buffer_copy;
-    printf("ppa_ctx_init\n");
-
-}
-
-void lv_draw_ppa_ctx_deinit(lv_disp_drv_t *drv, lv_draw_ctx_t *draw_ctx)
-{
-    LV_UNUSED(drv);
-    LV_UNUSED(draw_ctx);
-}
-#endif  /*LV_USE_GPU*/
 
 static lv_disp_t *display_init(esp_lcd_panel_handle_t lcd)
 {
     BSP_NULL_CHECK(lcd, NULL);
 
-    int hsize = LVGL_DISP_HSIZE;
-    int vsize = LVGL_DISP_VSIZE;
-    static lv_disp_draw_buf_t  draw_buf;
-    static lv_color_t *draw_buf_1 = NULL;
-    static lv_color_t *draw_buf_2 = NULL;
+    static lv_disp_draw_buf_t disp_buf = { 0 };     // Contains internal graphic buffer(s) called draw buffer(s)
+    static lv_disp_drv_t disp_drv = { 0 };          // Contains LCD panel handle and callback functions
 
-    draw_buf_1 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LVGL_DISP_HSIZE * LVGL_DISP_VSIZE, MALLOC_CAP_SPIRAM); /*A screen sized buffer*/
-    assert(draw_buf_1);
-    lv_disp_draw_buf_init(&draw_buf, draw_buf_1, NULL, LVGL_DISP_HSIZE * LVGL_DISP_VSIZE);   /*Initialize the display buffer*/
+    // alloc draw buffers used by LVGL
+    void *buf1 = NULL;
+    void *buf2 = NULL;
+    int buffer_size = 0;
 
-    /*Create a display*/
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);            /*Basic initialization*/
-    disp_drv.draw_buf = &draw_buf;
-    disp_drv.flush_cb = flush_callback;     /*Used when `LV_VDB_SIZE != 0` in lv_conf.h (buffered drawing)*/
-    disp_drv.hor_res = hsize;
-    disp_drv.ver_res = vsize;
-    disp_drv.physical_hor_res = -1;
-    disp_drv.physical_ver_res = -1;
-    disp_drv.offset_x = 0;
-    disp_drv.offset_y = 0;
-    disp_drv.user_data = lcd;
-    /*Set a display buffer*/
-    // disp_drv.direct_mode = 1;
-    //disp_drv.full_refresh = 1;
-#if LV_USE_GPU
-    disp_drv.draw_ctx_init = lv_draw_ppa_ctx_init;
-    disp_drv.draw_ctx_deinit = lv_draw_ppa_ctx_deinit;
-    disp_drv.draw_ctx_size = sizeof(lv_draw_ppa_ctx_t);
+    ESP_LOGD(TAG, "Malloc memory for LVGL buffer");
+#ifndef CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR
+    // Normmaly, for RGB LCD, we just use one buffer for LVGL rendering
+    buffer_size = BSP_LCD_H_RES * LVGL_BUFFER_HEIGHT;
+    buf1 = heap_caps_malloc(buffer_size * sizeof(lv_color_t), LVGL_BUFFER_MALLOC);
+    BSP_NULL_CHECK(buf1, NULL);
+    ESP_LOGI(TAG, "LVGL buffer size: %dKB", buffer_size * sizeof(lv_color_t) / 1024);
+#else
+    // To avoid the tearing effect, we should use at least two frame buffers: one for LVGL rendering and another for RGB output
+    buffer_size = BSP_LCD_H_RES * BSP_LCD_V_RES;
+#if (CONFIG_BSP_DISPLAY_LCD_BUFFER_NUMS == 3) && CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH
+    // With the usage of three buffers and full-refresh, we always have one buffer available for rendering, eliminating the need to wait for the RGB's sync signal
+    BSP_ERROR_CHECK_RETURN_NULL(esp_lcd_dsi_panel_get_frame_buffer(lcd, 3, &lvgl_port_rgb_last_buf, &buf1, &buf2));
+    lvgl_port_rgb_next_buf = lvgl_port_rgb_last_buf;
+    lvgl_port_flush_next_buf = buf2;
+#else
+    BSP_ERROR_CHECK_RETURN_NULL(esp_lcd_dsi_panel_get_frame_buffer(lcd, 2, &buf1, &buf2));
 #endif
+#endif /* CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR */
 
+    // initialize LVGL draw buffers
+    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, buffer_size);
+
+    ESP_LOGD(TAG, "Register display driver to LVGL");
+    lv_disp_drv_init(&disp_drv);
+    disp_drv.hor_res = BSP_LCD_H_RES;
+    disp_drv.ver_res = BSP_LCD_V_RES;
+    disp_drv.flush_cb = flush_callback;
+    disp_drv.drv_update_cb = update_callback;
+    disp_drv.draw_buf = &disp_buf;
+    disp_drv.user_data = lcd;
+#if CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH
+    disp_drv.full_refresh = 1;
+#elif CONFIG_BSP_DISPLAY_LVGL_DIRECT_MODE
+    disp_drv.direct_mode = 1;
+#endif
     return lv_disp_drv_register(&disp_drv);
 }
 
@@ -502,13 +497,15 @@ static lv_indev_t *indev_init(esp_lcd_touch_handle_t tp)
 {
     BSP_NULL_CHECK(tp, NULL);
 
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);          /*Basic initialization*/
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.user_data = tp;
-    indev_drv.read_cb = touchpad_read;         /*This function will be called periodically (by the library) to get the mouse position and state*/
+    static lv_indev_drv_t indev_drv_tp;
 
-    return lv_indev_drv_register(&indev_drv);
+    /* Register a touchpad input device */
+    lv_indev_drv_init(&indev_drv_tp);
+    indev_drv_tp.type = LV_INDEV_TYPE_POINTER;
+    indev_drv_tp.read_cb = touchpad_read;
+    indev_drv_tp.user_data = tp;
+
+    return lv_indev_drv_register(&indev_drv_tp);
 }
 
 static void tick_increment(void *arg)
@@ -547,106 +544,8 @@ static void lvgl_port_task(void *arg)
 
 esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t tp, lv_disp_t **disp, lv_indev_t **indev)
 {
-#if TEST_PPA
-    uint8_t *link_buffer = (uint32_t *)malloc(1024 + 7);
-
-    if ((uint32_t)link_buffer % 8) {
-        link_buffer = (uint32_t *)((uint32_t)link_buffer + (8 - ((uint32_t)link_buffer % 8)));
-    }
-    uint8_t *link_buffer_dma = dma2d_access_addr_map(link_buffer);
-    ppa_test.buffer[0].cache = link_buffer;
-    ppa_test.buffer[0].dma = link_buffer_dma;
-    ppa_test.buffer[0].size = 1024;
-
-    rx_link[0] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x0000);
-    tx_link[0] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x0020);
-    rx_link[1] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x0040);
-    tx_link[1] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x0060);
-    rx_link[2] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x0080);
-    tx_link[2] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00A0);
-    rx_link[3] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00C0);
-    tx_link[3] = (uint32_t *)((uint32_t)ppa_test.buffer[0].dma + 0x00E0);
-
-    // reset DMA2D
-    DMA2D.out_ch[0].conf0.out_rst = 1;
-    DMA2D.out_ch[0].conf0.out_rst = 0;
-    DMA2D.in_ch0.conf0.in_rst = 1;
-    DMA2D.in_ch0.conf0.in_rst = 0;
-
-    // inter-mem & extr-mem start/end addr
-    DMA2D.intr_mem_start_addr = 0x00000000;
-    DMA2D.intr_mem_end_addr = 0xFFFFFFFF;
-    DMA2D.extr_mem_start_addr = 0x60000000;
-    DMA2D.extr_mem_end_addr = 0x8FFFFFFF;
-
-    // peri_sel
-    DMA2D.out_ch[0].peri_sel.out_peri_sel = 0x1;
-    DMA2D.in_ch0.peri_sel.in_peri_sel = 0x1;
-
-    // commonn
-    DMA2D.out_ch[0].conf0.out_dscr_port_en = 0x1;
-    DMA2D.out_ch[0].conf0.out_auto_wrback = 0x0;
-    DMA2D.out_ch[0].conf0.out_eof_mode = 0x0;
-    DMA2D.out_ch[0].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[0].conf0.out_mem_burst_length = 0x3;
-    DMA2D.out_ch[0].conf0.outdscr_burst_en = 0x1;
-
-    DMA2D.in_ch0.conf0.in_mem_trans_en = 0x0;
-    DMA2D.in_ch0.conf0.in_dscr_port_en = 0x1;
-    DMA2D.in_ch0.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch0.conf0.in_mem_burst_length = 0x3;
-    DMA2D.in_ch0.conf0.indscr_burst_en = 0x1;
-
-    // dscr addr
-    DMA2D.out_ch[0].link_addr = rx_link[0];
-    DMA2D.in_ch0.link_addr = tx_link[0];
-
-    // reset DMA2D
-    DMA2D.out_ch[1].conf0.out_rst = 1;
-    DMA2D.out_ch[1].conf0.out_rst = 0;
-    DMA2D.out_ch[2].conf0.out_rst = 1;
-    DMA2D.out_ch[2].conf0.out_rst = 0;
-    DMA2D.in_ch1.conf0.in_rst = 1;
-    DMA2D.in_ch1.conf0.in_rst = 0;
-
-    // peri_sel
-    DMA2D.out_ch[1].peri_sel.out_peri_sel = 0x2;
-    DMA2D.out_ch[2].peri_sel.out_peri_sel = 0x3;
-    DMA2D.in_ch1.peri_sel.in_peri_sel = 0x2;
-
-    // commonn
-    DMA2D.out_ch[1].conf0.out_dscr_port_en = 0x0;
-    DMA2D.out_ch[1].conf0.out_auto_wrback = 0x0;
-    DMA2D.out_ch[1].conf0.out_eof_mode = 0x0;
-    DMA2D.out_ch[1].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[1].conf0.out_mem_burst_length = 0x3;
-    DMA2D.out_ch[1].conf0.outdscr_burst_en = 0x1;
-
-    DMA2D.out_ch[2].conf0.out_dscr_port_en = 0x0;
-    DMA2D.out_ch[2].conf0.out_auto_wrback = 0x0;
-    DMA2D.out_ch[2].conf0.out_eof_mode = 0x0;
-    DMA2D.out_ch[2].conf0.out_check_owner = 0x0;
-    DMA2D.out_ch[2].conf0.out_mem_burst_length = 0x3;
-    DMA2D.out_ch[2].conf0.outdscr_burst_en = 0x1;
-
-    DMA2D.in_ch1.conf0.in_dscr_port_en = 0x0;
-    DMA2D.in_ch1.conf0.in_check_owner = 0x0;
-    DMA2D.in_ch1.conf0.in_mem_burst_length = 0x3;
-    DMA2D.in_ch1.conf0.indscr_burst_en = 0x1;
-
-    // dscr addr
-    DMA2D.out_ch[1].link_addr = rx_link[1];
-    DMA2D.out_ch[2].link_addr = rx_link[2];
-    DMA2D.in_ch1.link_addr = tx_link[1];
-
-#if TEST_INTERRUPT
-    dma2d_in_ch0_sem = xSemaphoreCreateBinary( );
-    dma2d_in_ch1_sem = xSemaphoreCreateBinary( );
-
-    esp_intr_alloc(DMA2D_IN_CH0_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, dma2d_ch0_isr, NULL, NULL);
-    esp_intr_alloc(DMA2D_IN_CH1_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, dma2d_ch1_isr, NULL, NULL);
-#endif
-#endif
+    BSP_NULL_CHECK(lcd, ESP_ERR_INVALID_ARG);
+    BSP_NULL_CHECK(disp, ESP_ERR_INVALID_ARG);
 
     lv_init();
     BSP_ERROR_CHECK_RETURN_ERR(tick_init());
@@ -667,6 +566,9 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
         ESP_LOGE(TAG, "Failed to create LVGL task");
         return ESP_FAIL;
     }
+#if CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR
+    bsp_display_register_trans_done_callback(lcd_trans_done);
+#endif
 
     return ESP_OK;
 }

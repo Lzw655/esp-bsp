@@ -128,9 +128,12 @@ void Setting::homeRefreshTask(void *arg)
         // Update time in status bar
         time(&now);
         localtime_r(&now, &timeinfo);
+
+        bsp_display_lock(0);
         if (!app->_home->setClockStatusIconTime(timeinfo.tm_hour, timeinfo.tm_min)) {
             ESP_LOGE(app->name().c_str(), "Set clock status icon time failed");
         }
+        bsp_display_unlock();
 
         // Update memory in backstage
         if (app->_home->isBackstageVisible()) {
@@ -142,10 +145,12 @@ void Setting::homeRefreshTask(void *arg)
                      "free psram size: %d KB, total psram size: %d KB",
                      free_sram_size_kb, total_sram_size_kb, free_psram_size_kb, total_psram_size_kb);
 
+            bsp_display_lock(0);
             if (!app->_home->setBackstageMemoryLabel(free_sram_size_kb, free_psram_size_kb,
                                                     total_sram_size_kb, total_psram_size_kb)) {
                 ESP_LOGE(app->name().c_str(), "Set backstage memory label failed");
             }
+            bsp_display_unlock();
         }
 
         vTaskDelay(pdMS_TO_TICKS(HOME_REFRESH_TASK_PERIOD_MS));

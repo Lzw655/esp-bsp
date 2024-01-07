@@ -19,6 +19,8 @@
 #include "dw_gdma.h"
 #include "apps.h"
 
+#include "driver/gpio.h"
+
 #define LOG_SYSTEM_INFO         (1)
 #define LOG_MIPI_FRAME          (0)
 #define LOG_TIME_INTERVAL_MS    (2000)
@@ -40,6 +42,16 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "SPIFFS mount successfully");
 #endif
     ESP_ERROR_CHECK(bsp_extra_codec_init());
+
+    gpio_config_t io_conf = {
+        .pin_bit_mask = BIT64(TEST_PROBE_TOTAL_IO) | BIT64(TEST_PROBE_LCD_IO) | BIT64(TEST_PROBE_TP_IO),
+        .mode = GPIO_MODE_OUTPUT,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io_conf);
+    gpio_set_level(TEST_PROBE_TOTAL_IO, 0);
+    gpio_set_level(TEST_PROBE_LCD_IO, 0);
+    gpio_set_level(TEST_PROBE_TP_IO, 0);
 
     bsp_display_start();
     bsp_display_backlight_on();
@@ -72,6 +84,8 @@ extern "C" void app_main(void)
     eui->installApp(new Setting());
     eui->installApp(new Sketchpad());
     eui->installApp(new WeatherForecast());
+
+    // lv_demo_benchmark();
 
     bsp_display_unlock();
 
