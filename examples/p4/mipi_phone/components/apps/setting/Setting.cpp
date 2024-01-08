@@ -19,7 +19,7 @@
 
 #define HOME_REFRESH_TASK_STACK_SIZE     (1024 * 4)
 #define HOME_REFRESH_TASK_PRIORITY       (1)
-#define HOME_REFRESH_TASK_PERIOD_MS      (500)
+#define HOME_REFRESH_TASK_PERIOD_MS      (2000)
 
 #define SCREEN_BRIGHTNESS_MIN           (20)
 #define SCREEN_BRIGHTNESS_MAX           (100)
@@ -51,6 +51,7 @@ Setting::~Setting()
 bool Setting::run(void)
 {
     ui_setting_init();
+    lv_label_set_text(ui_LabelPanelPanelScreenSettingAbout4, "EUI");
 
     // Record screen index by loaded event
     _scr_list[UI_MAIN_SETTING_INDEX] = ui_ScreenSettingMain;

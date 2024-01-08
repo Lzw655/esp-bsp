@@ -1,7 +1,0 @@
-menu "Example Configurations"
-    config EXAMPLE_USE_SD_CARD
-        bool "Use SD Card"
-        default n
-        help
-            SPIFFS will disable if use SD Card
-endmenu

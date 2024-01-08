@@ -53,7 +53,7 @@
         .gpio_cfg = BSP_I2S_GPIO_CFG,                                                                 \
     }
 
-#define USE_I2S_RX_CHAN     (1)
+#define USE_I2S_RX_CHAN     (0)
 
 static const char *TAG = "P4-FUNCTION-EV-BOARD";
 

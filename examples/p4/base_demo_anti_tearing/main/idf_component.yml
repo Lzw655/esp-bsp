@@ -1,9 +1,0 @@
-## IDF Component Manager Manifest File
-dependencies:
-  # esp32_p4_function_ev_board:
-  #   version: feature/add_bsp_p4_function_ev_board
-  #   path: bsp/esp32_p4_function_ev_board
-  #   git: "https://github.com/Lzw655/esp-bsp.git"
-  esp32_p4_function_ev_board:
-    version: "*"
-    path: "../esp32_p4_function_ev_board"

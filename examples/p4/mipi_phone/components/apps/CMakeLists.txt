@@ -4,7 +4,8 @@ file(GLOB_RECURSE APPS_CPP_SRCS ${APPS_DIR}/*.cpp)
 
 idf_component_register(
     SRCS ${APPS_C_SRCS} ${APPS_CPP_SRCS}
-    INCLUDE_DIRS ${APPS_DIR})
+    INCLUDE_DIRS ${APPS_DIR}
+    REQUIRES esp32_p4_function_ev_board)
 
 target_compile_options(
     ${COMPONENT_LIB}
