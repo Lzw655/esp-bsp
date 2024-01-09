@@ -1,0 +1,13 @@
+## IDF Component Manager Manifest File
+dependencies:
+  esp32_p4_function_ev_board:
+    version: "*"
+    path: "../../../../bsp/esp32_p4_function_ev_board"
+
+  ESP32_UI:
+    version: test_add_apps
+    git: "https://github.com/esp-arduino-libs/ESP32_UI.git"
+
+  ESP32_UI_APP:
+    version: test_add_apps
+    git: "https://github.com/esp-arduino-libs/ESP32_UI_APP.git"
