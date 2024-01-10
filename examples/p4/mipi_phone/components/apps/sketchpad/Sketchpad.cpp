@@ -44,7 +44,7 @@ bool Sketchpad::run(void)
 
 	lv_canvas_set_buffer(sketchpad, cbuf, SKETCHPAD_DEFAULT_WIDTH, SKETCHPAD_DEFAULT_HEIGHT, LV_IMG_CF_TRUE_COLOR);
     lv_obj_center(sketchpad);
-    lv_canvas_fill_bg(sketchpad, lv_palette_lighten(LV_PALETTE_GREY, 3), LV_OPA_COVER);
+    lv_canvas_fill_bg(sketchpad, lv_color_white(), LV_OPA_COVER);
 
     return true;
 }

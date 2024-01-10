@@ -61,8 +61,8 @@ extern "C" void app_main(void)
 
     eui->installApp(new LVGLDemos(false, true));
     eui->installApp(new SmartGadget(false, true));
-    eui->installApp(new MusicPlayer(false, true));
-    eui->installApp(new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0, false, true));
+    // eui->installApp(new MusicPlayer(false, true));
+    // eui->installApp(new Camera(MIPI_CSI_IMAGE_HSIZE, MIPI_CSI_IMAGE_VSIZE, 0, false, true));
     eui->installApp(new Calculator());
     eui->installApp(new Game2048());
     eui->installApp(new Memory_game());

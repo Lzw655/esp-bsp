@@ -18,6 +18,7 @@
 
 LV_IMG_DECLARE(img_color);
 LV_IMG_DECLARE(img_pen);
+LV_IMG_DECLARE(img_erase);
 
 /**********************
  *  STATIC PROTOTYPES
@@ -59,14 +60,32 @@ const lv_obj_class_t lv_100ask_sketchpad_toolbar_class = {
  *   GLOBAL FUNCTIONS
  **********************/
 
+void ClearbtnEventCallback( lv_event_t * e)
+{
+    lv_obj_t *obj = (lv_obj_t *)lv_event_get_user_data(e);
+
+    lv_canvas_fill_bg(obj, lv_color_white(), LV_OPA_COVER);
+}
+
 lv_obj_t * lv_100ask_sketchpad_create(lv_obj_t * parent)
 {
     LV_LOG_INFO("begin");
-    lv_obj_t * obj = lv_obj_class_create_obj(MY_CLASS, parent);
-    lv_obj_class_init_obj(obj);
-    return obj;
-}
+    lv_obj_t * canvas_obj = lv_obj_class_create_obj(MY_CLASS, parent);
+    lv_obj_class_init_obj(canvas_obj);
 
+    lv_obj_t * btn = lv_btn_create(parent);
+    lv_obj_set_size(btn, 100, 50);
+    lv_obj_set_align(btn, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(0x364f6b), 0);
+
+    lv_obj_t * label = lv_label_create(btn);
+    lv_label_set_text(label, "Clear");
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, 0);
+
+    lv_obj_add_event_cb(btn, ClearbtnEventCallback, LV_EVENT_CLICKED, (void*)canvas_obj);
+
+    return canvas_obj;
+}
 
 /*=====================
  * Other functions
@@ -134,7 +153,7 @@ static void lv_100ask_sketchpad_event(const lv_obj_class_t * class_p, lv_event_t
 
     static lv_coord_t last_x, last_y = -32768;
 
-    if (code == LV_EVENT_PRESSING)
+    if (code == LV_EVENT_PRESSING || code == LV_EVENT_PRESSED || code == LV_EVENT_LONG_PRESSED || code == LV_EVENT_LONG_PRESSED_REPEAT || code == LV_EVENT_PRESS_LOST)
     {
         lv_indev_t * indev = lv_indev_get_act();
         if(indev == NULL)  return;
@@ -174,8 +193,6 @@ static void lv_100ask_sketchpad_event(const lv_obj_class_t * class_p, lv_event_t
     }
 }
 
-
-
 /*toolbar*/
 static void lv_100ask_sketchpad_toolbar_constructor(const lv_obj_class_t * class_p, lv_obj_t * obj)
 {
@@ -191,7 +208,7 @@ static void lv_100ask_sketchpad_toolbar_constructor(const lv_obj_class_t * class
     lv_obj_t * color = lv_img_create(obj);
     lv_obj_set_align(color, LV_ALIGN_RIGHT_MID);
     lv_obj_add_flag(color, LV_OBJ_FLAG_CLICKABLE);
-    // lv_obj_set_x(color, -50);
+    lv_obj_set_align(color, LV_ALIGN_LEFT_MID);
     lv_img_set_src(color, &img_color);
     lv_obj_add_event_cb(color, sketchpad_toolbar_event_cb, LV_EVENT_ALL, &sketchpad_toolbar_cw);
 
@@ -199,9 +216,15 @@ static void lv_100ask_sketchpad_toolbar_constructor(const lv_obj_class_t * class
     lv_obj_t * size = lv_img_create(obj);
     lv_img_set_src(size, &img_pen);
     lv_obj_add_flag(size, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_align(size, LV_ALIGN_LEFT_MID);
-    // lv_obj_set_x(size, 50);
+    lv_obj_set_align(size, LV_ALIGN_CENTER);
     lv_obj_add_event_cb(size, sketchpad_toolbar_event_cb, LV_EVENT_ALL, &sketchpad_toolbar_width);
+
+    static lv_coord_t sketchpad_toolbar_earse = LV_100ASK_SKETCHPAD_TOOLBAR_OPT_ERASE;
+    lv_obj_t * erase = lv_img_create(obj);
+    lv_img_set_src(erase, &img_erase);
+    lv_obj_add_flag(erase, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_align(erase, LV_ALIGN_RIGHT_MID);
+    lv_obj_add_event_cb(erase, sketchpad_toolbar_event_cb, LV_EVENT_ALL, &sketchpad_toolbar_earse);
 
     LV_TRACE_OBJ_CREATE("finished");
 }
@@ -259,13 +282,17 @@ static void sketchpad_toolbar_event_cb(lv_event_t * e)
             lv_obj_align_to(cw, obj, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
             lv_obj_add_event_cb(cw, toolbar_set_event_cb, LV_EVENT_RELEASED, &sketchpad_toolbar_cw);
         }
-        else if((*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_WIDTH)
+        else if((*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_WIDTH || (*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_ERASE)
         {
             static lv_coord_t sketchpad_toolbar_width = LV_100ASK_SKETCHPAD_TOOLBAR_OPT_WIDTH;
             lv_obj_t * slider = lv_slider_create(sketchpad);
             lv_slider_set_value(slider, (int32_t)(sketchpad_t->line_rect_dsc.width), LV_ANIM_OFF);
             lv_obj_align_to(slider, obj, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
             lv_obj_add_event_cb(slider, toolbar_set_event_cb, LV_EVENT_ALL, &sketchpad_toolbar_width);
+
+            if((*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_ERASE) {
+                sketchpad_t->line_rect_dsc.color = lv_color_white();
+            }
         }
     }
 }
@@ -288,10 +315,14 @@ static void toolbar_set_event_cb(lv_event_t * e)
         {
             lv_obj_del(obj);
         }
+        else if (*(toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_ERASE)
+        {
+            lv_obj_del(obj);
+        }
     }
     else if (code == LV_EVENT_VALUE_CHANGED)
     {
-        if((*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_WIDTH)
+        if((*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_WIDTH || (*toolbar_opt) == LV_100ASK_SKETCHPAD_TOOLBAR_OPT_ERASE)
         {
             sketchpad->line_rect_dsc.width = (lv_coord_t)lv_slider_get_value(obj);
         }
