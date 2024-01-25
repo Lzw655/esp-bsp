@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -193,6 +193,7 @@ static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t
     const int offsety2 = area->y2;
     void *next_fb = NULL;
     lv_port_flush_probe_t probe_result = FLUSH_PROBE_PART_COPY;
+    lv_disp_t *disp_refr = _lv_refr_get_disp_refreshing();
 
     /* Action after last area refresh */
     if (lv_disp_flush_is_last(drv)) {
@@ -225,10 +226,11 @@ static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t
 
                 /* Set LVGL full-refresh flag and set flush ready in advance */
                 drv->full_refresh = 1;
+                disp_refr->rendering_in_progress = 0;
                 lv_disp_flush_ready(drv);
 
                 /* Force to refresh whole screen, and will invoke `flush_callback` recursively */
-                lv_refr_now(_lv_refr_get_disp_refreshing());
+                lv_refr_now(disp_refr);
             } else {
                 /* Update current dirty area for next frame buffer */
                 next_fb = flush_get_next_buf(panel_handle);
@@ -302,8 +304,9 @@ static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t
     const int offsetx2 = area->x2;
     const int offsety1 = area->y1;
     const int offsety2 = area->y2;
-
     lv_port_flush_probe_t probe_result;
+    lv_disp_t *disp_refr = _lv_refr_get_disp_refreshing();
+
     /* Action after last area refresh */
     if (lv_disp_flush_is_last(drv)) {
         /* Check if the `full_refresh` flag has been triggered */
@@ -331,10 +334,11 @@ static void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t
 
                 /* Set LVGL full-refresh flag and set flush ready in advance */
                 drv->full_refresh = 1;
+                disp_refr->rendering_in_progress = 0;
                 lv_disp_flush_ready(drv);
 
                 /* Force to refresh whole screen, and will invoke `flush_callback` recursively */
-                lv_refr_now(_lv_refr_get_disp_refreshing());
+                lv_refr_now(disp_refr);
             } else {
                 /* Switch the current RGB frame buffer to `color_map` */
                 esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
