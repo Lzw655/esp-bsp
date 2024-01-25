@@ -357,14 +357,14 @@ esp_err_t bsp_display_backlight_on(void)
     return bsp_display_brightness_set(100);
 }
 
-void bsp_display_rotate(lv_disp_t *disp, lv_disp_rot_t rotation)
-{
-#if CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR
-    ESP_LOGE(TAG, "Unable to rotate the display using the `bsp_display_rotate()` function when the anti-tearing function is enabled. Please use the `BSP_DISPLAY_LVGL_ROTATION` configuration instead.");
-#else
-    lv_disp_set_rotation(disp, rotation);
-#endif
-}
+// void bsp_display_rotate(lv_disp_t *disp, lv_disp_rot_t rotation)
+// {
+// #if CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR
+//     ESP_LOGE(TAG, "Unable to rotate the display using the `bsp_display_rotate()` function when the anti-tearing function is enabled. Please use the `BSP_DISPLAY_LVGL_ROTATION` configuration instead.");
+// #else
+//     lv_disp_set_rotation(disp, rotation);
+// #endif
+// }
 
 bool bsp_display_lock(uint32_t timeout_ms)
 {

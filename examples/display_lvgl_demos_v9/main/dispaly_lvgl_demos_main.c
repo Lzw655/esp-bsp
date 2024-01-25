@@ -38,9 +38,9 @@ void app_main(void)
     ESP_LOGI(TAG, "Display LVGL demo");
     bsp_display_lock(0);
     // lv_demo_widgets();      /* A widgets example */
-    // lv_demo_music();        /* A modern, smartphone-like music player demo. */
+    lv_demo_music();        /* A modern, smartphone-like music player demo. */
     // lv_demo_stress();       /* A stress test for LVGL. */
-    lv_demo_benchmark();    /* A demo to measure the performance of LVGL or to compare different settings. */
+    // lv_demo_benchmark();    /* A demo to measure the performance of LVGL or to compare different settings. */
     bsp_display_unlock();
 
 #if LOG_MEM_INFO

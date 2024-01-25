@@ -409,7 +409,7 @@ void bsp_display_unlock(void);
  * @param[in] disp:     Pointer to LVGL display
  * @param[in] rotation: Angle of the display rotation
  */
-void bsp_display_rotate(lv_disp_t *disp, lv_disp_rot_t rotation);
+// void bsp_display_rotate(lv_disp_t *disp, lv_disp_rot_t rotation);
 
 /**
  * @brief Get display horizontal resolution

@@ -432,52 +432,50 @@ static bool lcd_trans_done(esp_lcd_panel_handle_t handle)
 
 #else
 
-void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+void flush_callback(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
+
     const int offsetx1 = area->x1;
     const int offsetx2 = area->x2;
     const int offsety1 = area->y1;
     const int offsety2 = area->y2;
 
     /* Just copy data from the color map to the RGB frame buffer */
-    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, px_map);
 
-    lv_disp_flush_ready(drv);
+    lv_display_flush_ready(disp);
 }
 
 #endif /* CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR */
 
-static void update_callback(lv_disp_drv_t *drv)
-{
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
+// static void update_callback(lv_disp_drv_t *drv)
+// {
+//     esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
 
-    switch (drv->rotated) {
-    case LV_DISP_ROT_NONE:
-        esp_lcd_panel_swap_xy(panel_handle, false);
-        esp_lcd_panel_mirror(panel_handle, false, false);
-        break;
-    case LV_DISP_ROT_90:
-        esp_lcd_panel_swap_xy(panel_handle, true);
-        esp_lcd_panel_mirror(panel_handle, false, true);
-        break;
-    case LV_DISP_ROT_180:
-        esp_lcd_panel_swap_xy(panel_handle, false);
-        esp_lcd_panel_mirror(panel_handle, true, true);
-        break;
-    case LV_DISP_ROT_270:
-        esp_lcd_panel_swap_xy(panel_handle, true);
-        esp_lcd_panel_mirror(panel_handle, true, false);
-        break;
-    }
-}
+//     switch (drv->rotated) {
+//     case LV_DISP_ROT_NONE:
+//         esp_lcd_panel_swap_xy(panel_handle, false);
+//         esp_lcd_panel_mirror(panel_handle, false, false);
+//         break;
+//     case LV_DISP_ROT_90:
+//         esp_lcd_panel_swap_xy(panel_handle, true);
+//         esp_lcd_panel_mirror(panel_handle, false, true);
+//         break;
+//     case LV_DISP_ROT_180:
+//         esp_lcd_panel_swap_xy(panel_handle, false);
+//         esp_lcd_panel_mirror(panel_handle, true, true);
+//         break;
+//     case LV_DISP_ROT_270:
+//         esp_lcd_panel_swap_xy(panel_handle, true);
+//         esp_lcd_panel_mirror(panel_handle, true, false);
+//         break;
+//     }
+// }
 
-static lv_disp_t *display_init(esp_lcd_panel_handle_t lcd)
+static lv_display_t *display_init(esp_lcd_panel_handle_t lcd)
 {
     BSP_NULL_CHECK(lcd, NULL);
-
-    static lv_disp_draw_buf_t disp_buf = { 0 };     // Contains internal graphic buffer(s) called draw buffer(s)
-    static lv_disp_drv_t disp_drv = { 0 };          // Contains LCD panel handle and callback functions
 
     // alloc draw buffers used by LVGL
     void *buf1 = NULL;
@@ -509,33 +507,35 @@ static lv_disp_t *display_init(esp_lcd_panel_handle_t lcd)
 #endif
 #endif /* CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR */
 
-    // initialize LVGL draw buffers
-    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, buffer_size);
-
     ESP_LOGD(TAG, "Register display driver to LVGL");
-    lv_disp_drv_init(&disp_drv);
-#if CONFIG_BSP_DISPLAY_LVGL_ROTATION_90 || CONFIG_BSP_DISPLAY_LVGL_ROTATION_270
-    disp_drv.hor_res = BSP_LCD_V_RES;
-    disp_drv.ver_res = BSP_LCD_H_RES;
-#else
-    disp_drv.hor_res = BSP_LCD_H_RES;
-    disp_drv.ver_res = BSP_LCD_V_RES;
-#endif
-    disp_drv.flush_cb = flush_callback;
-    disp_drv.drv_update_cb = update_callback;
-    disp_drv.draw_buf = &disp_buf;
-    disp_drv.user_data = lcd;
-#if CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH
-    disp_drv.full_refresh = 1;
-#elif CONFIG_BSP_DISPLAY_LVGL_DIRECT_MODE
-    disp_drv.direct_mode = 1;
-#endif
-    return lv_disp_drv_register(&disp_drv);
+    lv_display_t *display = lv_display_create(BSP_LCD_H_RES, BSP_LCD_V_RES);
+    lv_display_set_buffers(display, buf1, buf2, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_flush_cb(display, flush_callback);
+    lv_display_set_user_data(display, lcd);
+
+//     lv_disp_drv_init(&disp_drv);
+// #if CONFIG_BSP_DISPLAY_LVGL_ROTATION_90 || CONFIG_BSP_DISPLAY_LVGL_ROTATION_270
+//     disp_drv.hor_res = BSP_LCD_V_RES;
+//     disp_drv.ver_res = BSP_LCD_H_RES;
+// #else
+//     disp_drv.hor_res = BSP_LCD_H_RES;
+//     disp_drv.ver_res = BSP_LCD_V_RES;
+// #endif
+//     disp_drv.flush_cb = flush_callback;
+//     disp_drv.drv_update_cb = update_callback;
+//     disp_drv.draw_buf = &disp_buf;
+//     disp_drv.user_data = lcd;
+// #if CONFIG_BSP_DISPLAY_LVGL_FULL_REFRESH
+//     disp_drv.full_refresh = 1;
+// #elif CONFIG_BSP_DISPLAY_LVGL_DIRECT_MODE
+//     disp_drv.direct_mode = 1;
+// #endif
+    return display;
 }
 
-static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+static void touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
 {
-    esp_lcd_touch_handle_t tp = (esp_lcd_touch_handle_t)indev_drv->user_data;
+    esp_lcd_touch_handle_t tp = (esp_lcd_touch_handle_t)lv_indev_get_user_data(indev);
     assert(tp);
 
     uint16_t touchpad_x;
@@ -560,15 +560,12 @@ static lv_indev_t *indev_init(esp_lcd_touch_handle_t tp)
 {
     BSP_NULL_CHECK(tp, NULL);
 
-    static lv_indev_drv_t indev_drv_tp;
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);   /*See below.*/
+    lv_indev_set_user_data(indev, tp);
+    lv_indev_set_read_cb(indev, touchpad_read);  /*See below.*/
 
-    /* Register a touchpad input device */
-    lv_indev_drv_init(&indev_drv_tp);
-    indev_drv_tp.type = LV_INDEV_TYPE_POINTER;
-    indev_drv_tp.read_cb = touchpad_read;
-    indev_drv_tp.user_data = tp;
-
-    return lv_indev_drv_register(&indev_drv_tp);
+    return indev;
 }
 
 static void tick_increment(void *arg)
@@ -605,7 +602,7 @@ static void lvgl_port_task(void *arg)
     }
 }
 
-esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t tp, lv_disp_t **disp, lv_indev_t **indev)
+esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t tp, lv_display_t **disp, lv_indev_t **indev)
 {
     BSP_NULL_CHECK(lcd, ESP_ERR_INVALID_ARG);
     BSP_NULL_CHECK(tp, ESP_ERR_INVALID_ARG);
