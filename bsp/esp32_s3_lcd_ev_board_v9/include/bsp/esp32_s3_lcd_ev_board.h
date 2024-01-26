@@ -315,13 +315,13 @@ esp_err_t bsp_audio_poweramp_enable(bool enable);
 
 /* LVGL related parameters */
 #define LVGL_TICK_PERIOD_MS         (CONFIG_BSP_DISPLAY_LVGL_TICK)
-// #define LVGL_BUFFER_HEIGHT          (480)
-#define LVGL_BUFFER_HEIGHT          (100)
+#define LVGL_BUFFER_HEIGHT          (480)
+// #define LVGL_BUFFER_HEIGHT          (100)
 #if CONFIG_BSP_DISPLAY_LVGL_PSRAM
 #define LVGL_BUFFER_MALLOC          (MALLOC_CAP_SPIRAM)
 #else
-// #define LVGL_BUFFER_MALLOC          (MALLOC_CAP_SPIRAM)
-#define LVGL_BUFFER_MALLOC          (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
+#define LVGL_BUFFER_MALLOC          (MALLOC_CAP_SPIRAM)
+// #define LVGL_BUFFER_MALLOC          (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
 #endif
 
 /**

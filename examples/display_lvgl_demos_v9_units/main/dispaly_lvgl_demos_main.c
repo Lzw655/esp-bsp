@@ -9,7 +9,7 @@
 #include "esp_log.h"
 
 #include "lv_demos.h"
-#include "lv_demo_benchmark.h"
+// #include "lv_demo_benchmark.h"
 #include "bsp/esp-bsp.h"
 
 static char *TAG = "app_main";
@@ -45,9 +45,10 @@ void app_main(void)
     ESP_LOGI(TAG, "Display LVGL demo");
     bsp_display_lock(0);
     // lv_demo_widgets();      /* A widgets example */
-    lv_demo_music();        /* A modern, smartphone-like music player demo. */
+    // lv_demo_music();        /* A modern, smartphone-like music player demo. */
     // lv_demo_stress();       /* A stress test for LVGL. */
     // lv_demo_benchmark();    /* A demo to measure the performance of LVGL or to compare different settings. */
+    lv_demo_multilang();   /* Show the application in various languages. */
     bsp_display_unlock();
 
 #if LOG_SYSTEM_INFO
