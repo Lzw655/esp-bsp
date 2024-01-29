@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 /**
- * @file lv_demo_benchmark.h
+ * @file lv_demo_v8_benchmark.h
  *
  */
 
-#ifndef LV_DEMO_BENCHMARK_H
-#define LV_DEMO_BENCHMARK_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,7 +17,6 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
-// #include "../lv_demos.h"
 #include "lvgl.h"
 
 /*********************
@@ -34,19 +32,19 @@ typedef void finished_cb_t(void);
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-void lv_demo_benchmark(void);
+void lv_demo_v8_benchmark(void);
 
-void lv_demo_benchmark_close(void);
+void lv_demo_v8_benchmark_close(void);
 
-void lv_demo_benchmark_run_scene(int_fast16_t scene_no);
+void lv_demo_v8_benchmark_run_scene(int_fast16_t scene_no);
 
-void lv_demo_benchmark_set_finished_cb(finished_cb_t *finished_cb);
+void lv_demo_v8_benchmark_set_finished_cb(finished_cb_t *finished_cb);
 
 /**
- * Make the benchmark work at the highest frame rate
+ * Make the v8_benchmark work at the highest frame rate
  * @param en true: highest frame rate; false: default frame rate
  */
-void lv_demo_benchmark_set_max_speed(bool en);
+void lv_demo_v8_benchmark_set_max_speed(bool en);
 
 /**********************
  *      MACROS
@@ -55,5 +53,3 @@ void lv_demo_benchmark_set_max_speed(bool en);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#endif /*LV_DEMO_BENCHMARK_H*/

@@ -1,15 +1,15 @@
-# set(LV_DEMO_DIR benchmark)
-# file(GLOB_RECURSE LV_DEMOS_SOURCES ${LV_DEMO_DIR}/*.c)
+set(BENCHMARK_DIR benchmark)
+file(GLOB_RECURSE BENCHMARK_SOURCES ${BENCHMARK_DIR}/*.c)
 
 set(LV_DEMO_DIR ../managed_components/lvgl__lvgl/demos)
 file(GLOB_RECURSE LV_DEMOS_SOURCES ${LV_DEMO_DIR}/*.c)
 
 idf_component_register(
-    SRCS "dispaly_lvgl_demos_main.c" ${LV_DEMOS_SOURCES}
-    INCLUDE_DIRS "." ${LV_DEMO_DIR})
+    SRCS "dispaly_lvgl_demos_main.c" ${LV_DEMOS_SOURCES} ${BENCHMARK_SOURCES}
+    INCLUDE_DIRS "." ${LV_DEMO_DIR} ${BENCHMARK_DIR})
 
 set_source_files_properties(
     ${LV_DEMOS_SOURCES}
     PROPERTIES COMPILE_OPTIONS
-    "-DLV_LVGL_H_INCLUDE_SIMPLE;-Wno-format;-DLV_USE_DEMO_BENCHMARK;"
+    "-DLV_LVGL_H_INCLUDE_SIMPLE;-Wno-format;"
     )
