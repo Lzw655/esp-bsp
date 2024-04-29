@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -432,6 +432,16 @@ static bool lcd_trans_done(esp_lcd_panel_handle_t handle)
 
 #else
 
+#if CONFIG_BSP_LCD_SUB_BOARD_240_320
+static bool lcd_trans_done(esp_lcd_panel_handle_t handle)
+{
+    lv_disp_t *disp = lv_disp_get_default();
+    lv_disp_flush_ready(disp->driver);
+
+    return false;
+}
+#endif
+
 void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
     esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
@@ -443,7 +453,9 @@ void flush_callback(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color
     /* Just copy data from the color map to the RGB frame buffer */
     esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
 
+#ifndef CONFIG_BSP_LCD_SUB_BOARD_240_320
     lv_disp_flush_ready(drv);
+#endif
 }
 
 #endif /* CONFIG_BSP_DISPLAY_LVGL_AVOID_TEAR */
@@ -626,6 +638,10 @@ esp_err_t bsp_lvgl_port_init(esp_lcd_panel_handle_t lcd, esp_lcd_touch_handle_t 
 #elif CONFIG_BSP_DISPLAY_LVGL_ROTATION_270
     esp_lcd_touch_set_swap_xy(tp, true);
     esp_lcd_touch_set_mirror_x(tp, true);
+#endif
+
+#if CONFIG_BSP_LCD_SUB_BOARD_240_320
+    bsp_display_register_trans_done_callback(lcd_trans_done);
 #endif
 
     lvgl_mux = xSemaphoreCreateRecursiveMutex();

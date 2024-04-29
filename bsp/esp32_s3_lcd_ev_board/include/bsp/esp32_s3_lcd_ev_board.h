@@ -75,6 +75,14 @@
 #define BSP_LCD_SUB_BOARD_2_SPI_SCK     (IO_EXPANDER_PIN_NUM_2)
 #define BSP_LCD_SUB_BOARD_2_SPI_SDO     (IO_EXPANDER_PIN_NUM_3)
 
+#define BSP_LCD_SUB_BOARD_1_SPI_CS_1    (GPIO_NUM_17)
+#define BSP_LCD_SUB_BOARD_1_SPI_CS_2    (GPIO_NUM_46)
+#define BSP_LCD_SUB_BOARD_1_SPI_SCK     (GPIO_NUM_10)
+#define BSP_LCD_SUB_BOARD_1_SPI_DC      (GPIO_NUM_12)
+#define BSP_LCD_SUB_BOARD_1_SPI_MOSI    (GPIO_NUM_14)
+#define BSP_LCD_SUB_BOARD_1_SPI_MISO    (GPIO_NUM_8)
+#define BSP_LCD_SUB_BOARD_1_BL          (GPIO_NUM_45)
+
 /* USB */
 #define BSP_USB_POS             (USBPHY_DP_NUM)
 #define BSP_USB_NEG             (USBPHY_DM_NUM)
@@ -282,6 +290,9 @@ esp_err_t bsp_audio_poweramp_enable(bool enable);
  *
  *******************************************************************************************************************************/
 /* LCD related parameters */
+#define BSP_LCD_SUB_BOARD_1_H_RES     (240)
+#define BSP_LCD_SUB_BOARD_1_V_RES     (320)
+
 #define BSP_LCD_SUB_BOARD_2_H_RES     (480)
 #define BSP_LCD_SUB_BOARD_2_V_RES     (480)
 

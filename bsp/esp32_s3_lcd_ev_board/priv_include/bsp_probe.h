@@ -17,6 +17,7 @@ typedef enum {
 
 typedef enum {
     SUB_BOARD_TYPE_UNKNOW = 0,
+    SUB_BOARD_TYPE_1_240_320,   /*!< Sub-board 2 with 480x480 LCD (GC9503), Touch (FT5x06) */
     SUB_BOARD_TYPE_2_480_480,   /*!< Sub-board 2 with 480x480 LCD (GC9503), Touch (FT5x06) */
     SUB_BOARD_TYPE_3_800_480,   /*!< Sub-board 3 with 800x480 LCD (ST7262), Touch (GT1151) */
 } bsp_sub_board_type_t;

@@ -17,7 +17,7 @@
 
 static const char *TAG = "bsp_probe";
 static bsp_module_type_t module_type = MODULE_TYPE_UNKNOW;
-static bsp_sub_board_type_t sub_board_type = SUB_BOARD_TYPE_UNKNOW;
+static bsp_sub_board_type_t sub_board_type = (bsp_sub_board_type_t)CONFIG_BSP_LCD_SUB_BOARD_TYPE;
 
 bsp_module_type_t bsp_probe_module_type(void)
 {

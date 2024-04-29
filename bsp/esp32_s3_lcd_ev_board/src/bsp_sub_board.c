@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2022-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -16,8 +16,10 @@
 #include "esp_lcd_panel_rgb.h"
 #include "esp_lcd_touch_ft5x06.h"
 #include "esp_lcd_touch_gt1151.h"
+#include "esp_lcd_touch_xpt2046.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
+#include "driver/spi_master.h"
 
 #include "sdkconfig.h"
 #include "bsp_err_check.h"
@@ -53,6 +55,18 @@ IRAM_ATTR static bool rgb_lcd_on_vsync_event(esp_lcd_panel_handle_t panel, const
 #endif
     if (trans_done) {
         if (trans_done(panel)) {
+            need_yield = pdTRUE;
+        }
+    }
+
+    return (need_yield == pdTRUE);
+}
+
+static bool spi_lcd_on_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx)
+{
+    BaseType_t need_yield = pdFALSE;
+    if (trans_done) {
+        if (trans_done(panel_io)) {
             need_yield = pdTRUE;
         }
     }
@@ -104,6 +118,53 @@ drift, please enable `ESP32S3_DATA_CACHE_LINE_32B` instead");
     }
 
     switch (sub_board_type) {
+    case SUB_BOARD_TYPE_1_240_320: {
+        ESP_LOGI(TAG, "Turn on LCD backlight");
+        gpio_config_t io_conf = {
+            .pin_bit_mask = BIT64(BSP_LCD_SUB_BOARD_1_BL),
+            .mode = GPIO_MODE_OUTPUT,
+            .pull_up_en = true,
+        };
+        gpio_config(&io_conf);
+        gpio_set_level(BSP_LCD_SUB_BOARD_1_BL, 1);
+
+        ESP_LOGI(TAG, "Initialize SPI bus");
+        spi_bus_config_t buscfg = {
+            .sclk_io_num = BSP_LCD_SUB_BOARD_1_SPI_SCK,
+            .mosi_io_num = BSP_LCD_SUB_BOARD_1_SPI_MOSI,
+            .miso_io_num = BSP_LCD_SUB_BOARD_1_SPI_MISO,
+            .quadwp_io_num = -1,
+            .quadhd_io_num = -1,
+            .max_transfer_sz = BSP_LCD_SUB_BOARD_1_H_RES * BSP_LCD_SUB_BOARD_1_V_RES * sizeof(uint16_t),
+        };
+        ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
+
+        ESP_LOGI(TAG, "Install panel IO");
+        esp_lcd_panel_io_spi_config_t io_config = {
+            .dc_gpio_num = BSP_LCD_SUB_BOARD_1_SPI_DC,
+            .cs_gpio_num = BSP_LCD_SUB_BOARD_1_SPI_CS_1,
+            .pclk_hz = 40 * 1000 * 1000,
+            .lcd_cmd_bits = 8,
+            .lcd_param_bits = 8,
+            .spi_mode = 0,
+            .trans_queue_depth = 10,
+            .on_color_trans_done = spi_lcd_on_trans_done,
+        };
+        // Attach the LCD to the SPI bus
+        ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &io_handle));
+
+        esp_lcd_panel_dev_config_t panel_config = {
+            .reset_gpio_num = -1,
+            .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+            .bits_per_pixel = 16,
+        };
+        ESP_LOGI(TAG, "Install ST7789 panel driver");
+        ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
+        ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+        ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+        ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
+        break;
+    };
     case SUB_BOARD_TYPE_2_480_480: {
         // For the latest version of the sub-board 2, it's necessary to set `BSP_LCD_SUB_BOARD_2_3_VSYNC` pin to a high level before initializing the LCD
         // This is a specific requirement of this LCD module and not apply to all LCD modules
@@ -315,6 +376,27 @@ esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t
     }
 
     switch (sub_board_type) {
+    case SUB_BOARD_TYPE_1_240_320: {
+        const esp_lcd_panel_io_spi_config_t tp_io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(BSP_LCD_SUB_BOARD_1_SPI_CS_2);
+        const esp_lcd_touch_config_t tp_cfg = {
+            .x_max = BSP_LCD_SUB_BOARD_1_H_RES,
+            .y_max = BSP_LCD_SUB_BOARD_1_V_RES,
+            .rst_gpio_num = GPIO_NUM_NC,
+            .int_gpio_num = GPIO_NUM_NC,
+            .levels = {
+                .reset = 0,
+                .interrupt = 0,
+            },
+            .flags = {
+                .swap_xy = 0,
+                .mirror_x = 0,
+                .mirror_y = 0,
+            },
+        };
+        BSP_ERROR_CHECK_RETURN_ERR(esp_lcd_new_panel_io_spi((esp_lcd_i2c_bus_handle_t)SPI2_HOST, &tp_io_config, &tp_io_handle));
+        BSP_ERROR_CHECK_RETURN_ERR(esp_lcd_touch_new_spi_xpt2046(tp_io_handle, &tp_cfg, &tp_handle));
+        break;
+    }
     case SUB_BOARD_TYPE_2_480_480: {
         const esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
         const esp_lcd_touch_config_t tp_cfg = {
@@ -383,6 +465,8 @@ uint16_t bsp_display_get_h_res(void)
     }
 
     switch (sub_board_type) {
+    case SUB_BOARD_TYPE_1_240_320:
+        return BSP_LCD_SUB_BOARD_1_H_RES;
     case SUB_BOARD_TYPE_2_480_480:
         return BSP_LCD_SUB_BOARD_2_H_RES;
     case SUB_BOARD_TYPE_3_800_480:
@@ -402,6 +486,8 @@ uint16_t bsp_display_get_v_res(void)
     }
 
     switch (sub_board_type) {
+    case SUB_BOARD_TYPE_1_240_320:
+        return BSP_LCD_SUB_BOARD_1_V_RES;
     case SUB_BOARD_TYPE_2_480_480:
         return BSP_LCD_SUB_BOARD_2_V_RES;
     case SUB_BOARD_TYPE_3_800_480:

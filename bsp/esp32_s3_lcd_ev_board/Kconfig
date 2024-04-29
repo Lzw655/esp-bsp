@@ -61,6 +61,8 @@ menu "Board Support Package"
 
             config BSP_LCD_SUB_BOARD_NONE
                 bool "Not specifying a sub board"
+            config BSP_LCD_SUB_BOARD_240_320
+                bool "Sub board 1 with 240x320 SPI LCD"
             config BSP_LCD_SUB_BOARD_480_480
                 bool "Sub board 2 with 480x480 RGB LCD"
             config BSP_LCD_SUB_BOARD_800_480
@@ -70,8 +72,9 @@ menu "Board Support Package"
         config BSP_LCD_SUB_BOARD_TYPE
             int
             default 0 if BSP_LCD_SUB_BOARD_NONE
-            default 1 if BSP_LCD_SUB_BOARD_480_480
-            default 2 if BSP_LCD_SUB_BOARD_800_480
+            default 1 if BSP_LCD_SUB_BOARD_240_320
+            default 2 if BSP_LCD_SUB_BOARD_480_480
+            default 3 if BSP_LCD_SUB_BOARD_800_480
 
         config BSP_LCD_RGB_BUFFER_NUMS
             int "Set number of frame buffers"
