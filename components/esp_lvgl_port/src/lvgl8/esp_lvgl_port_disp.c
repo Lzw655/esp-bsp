@@ -288,7 +288,9 @@ static lv_disp_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp_cf
             buff_caps = MALLOC_CAP_DMA;
         } else if (disp_cfg->flags.buff_spiram) {
             buff_caps = MALLOC_CAP_SPIRAM;
+#if CONFIG_SPI_DMA_MOUNT_PSRAM
             cache_width = cache_hal_get_cache_line_size(CACHE_LL_LEVEL_EXT_MEM, CACHE_TYPE_DATA);
+#endif
         }
 
         if (disp_cfg->trans_size) {
