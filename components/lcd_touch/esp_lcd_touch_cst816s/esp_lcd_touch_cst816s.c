@@ -80,7 +80,7 @@ esp_err_t esp_lcd_touch_new_i2c_cst816s(const esp_lcd_panel_io_handle_t io, cons
     /* Reset controller */
     ESP_GOTO_ON_ERROR(reset(cst816s), err, TAG, "Reset failed");
     /* Read product id */
-    ESP_GOTO_ON_ERROR(read_id(cst816s), err, TAG, "Read version failed");
+    // ESP_GOTO_ON_ERROR(read_id(cst816s), err, TAG, "Read version failed");
     *tp = cst816s;
 
     return ESP_OK;
