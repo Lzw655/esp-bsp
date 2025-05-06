@@ -18,6 +18,10 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
 #include "esp_lvgl_port_priv.h"
+#if CONFIG_SPI_DMA_MOUNT_PSRAM
+#include "hal/cache_hal.h"
+#include "hal/cache_ll.h"
+#endif
 
 #define LVGL_PORT_PPA   (CONFIG_LVGL_PORT_ENABLE_PPA)
 
@@ -90,6 +94,7 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
 static void lvgl_port_disp_size_update_callback(lv_event_t *e);
 static void lvgl_port_disp_rotation_update(lvgl_port_display_ctx_t *disp_ctx);
 static void lvgl_port_display_invalidate_callback(lv_event_t *e);
+static void lvgl_port_display_rounder_callback(lv_event_t *e);
 
 /*******************************************************************************
 * Public API functions
@@ -297,6 +302,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
     disp_ctx->current_rotation = LV_DISPLAY_ROTATION_0;
 
     uint32_t buff_caps = 0;
+    uint32_t cache_width = CONFIG_LV_DRAW_BUF_ALIGN;
 #if SOC_PSRAM_DMA_CAPABLE == 0
     if (disp_cfg->flags.buff_dma && disp_cfg->flags.buff_spiram) {
         ESP_GOTO_ON_FALSE(false, ESP_ERR_NOT_SUPPORTED, err, TAG, "Alloc DMA capable buffer in SPIRAM is not supported!");
@@ -307,6 +313,9 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
     }
     if (disp_cfg->flags.buff_spiram) {
         buff_caps |= MALLOC_CAP_SPIRAM;
+#if CONFIG_SPI_DMA_MOUNT_PSRAM
+        cache_width = cache_hal_get_cache_line_size(CACHE_LL_LEVEL_EXT_MEM, CACHE_TYPE_DATA);
+#endif
     }
     if (buff_caps == 0) {
         buff_caps |= MALLOC_CAP_DEFAULT;
@@ -328,10 +337,10 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
     } else {
         /* alloc draw buffers used by LVGL */
         /* it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized */
-        buf1 = heap_caps_aligned_alloc(CONFIG_LV_DRAW_BUF_ALIGN, buffer_size * color_bytes, buff_caps);
+        buf1 = heap_caps_aligned_alloc(cache_width, buffer_size * color_bytes, buff_caps);
         ESP_GOTO_ON_FALSE(buf1, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf1) allocation!");
         if (disp_cfg->double_buffer) {
-            buf2 = heap_caps_aligned_alloc(CONFIG_LV_DRAW_BUF_ALIGN, buffer_size * color_bytes, buff_caps);
+            buf2 = heap_caps_aligned_alloc(cache_width, buffer_size * color_bytes, buff_caps);
             ESP_GOTO_ON_FALSE(buf2, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for LVGL buffer (buf2) allocation!");
         }
 
@@ -343,6 +352,8 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
 
     /* Set display color format */
     lv_display_set_color_format(disp, display_color_format);
+
+    lv_display_add_event_cb(disp, lvgl_port_disp_size_update_callback, LV_EVENT_INVALIDATE_AREA, disp_ctx);
 
     /* Monochrome display settings */
     if (disp_cfg->monochrome) {
@@ -386,6 +397,11 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
     lv_display_add_event_cb(disp, lvgl_port_disp_size_update_callback, LV_EVENT_RESOLUTION_CHANGED, disp_ctx);
     lv_display_add_event_cb(disp, lvgl_port_display_invalidate_callback, LV_EVENT_INVALIDATE_AREA, disp_ctx);
     lv_display_add_event_cb(disp, lvgl_port_display_invalidate_callback, LV_EVENT_REFR_REQUEST, disp_ctx);
+
+#if CONFIG_SPI_DMA_MOUNT_PSRAM
+    // Rounder
+    lv_display_add_event_cb(disp, lvgl_port_display_rounder_callback, LV_EVENT_INVALIDATE_AREA, disp_ctx);
+#endif
 
     lv_display_set_driver_data(disp, disp_ctx);
     disp_ctx->disp_drv = disp;
@@ -752,3 +768,14 @@ static void lvgl_port_display_invalidate_callback(lv_event_t *e)
     /* Wake LVGL task, if needed */
     lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
 }
+
+#if CONFIG_SPI_DMA_MOUNT_PSRAM
+static void lvgl_port_display_rounder_callback(lv_event_t *e)
+{
+    lv_area_t *area = (lv_area_t *)lv_event_get_param(e);
+    area->x1 &= ~0x7U;
+    area->y1 &= ~0x7U;
+    area->x2 = (area->x2 & ~0x7U) + 7;
+    area->y2 = (area->y2 & ~0x7U) + 7;
+}
+#endif
