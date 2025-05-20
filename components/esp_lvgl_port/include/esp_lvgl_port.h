@@ -53,6 +53,7 @@ typedef struct {
     int task_affinity;      /*!< LVGL task pinned to core (-1 is no affinity) */
     int task_max_sleep_ms;  /*!< Maximum sleep in LVGL task */
     int timer_period_ms;    /*!< LVGL timer tick period in ms */
+    bool task_in_ext;
 } lvgl_port_cfg_t;
 
 /**
@@ -66,6 +67,7 @@ typedef struct {
         .task_affinity = -1,      \
         .task_max_sleep_ms = 500, \
         .timer_period_ms = 5,     \
+        .task_in_ext = false, \
     }
 
 /**

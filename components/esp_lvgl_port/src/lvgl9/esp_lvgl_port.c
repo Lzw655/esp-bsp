@@ -37,6 +37,8 @@ typedef struct lvgl_port_ctx_s {
     bool                running;
     int                 task_max_sleep_ms;
     int                 timer_period_ms;
+    uint8_t             *task_stack_buffer;
+    StaticTask_t        task_stack;
 } lvgl_port_ctx_t;
 
 /*******************************************************************************
@@ -83,13 +85,19 @@ esp_err_t lvgl_port_init(const lvgl_port_cfg_t *cfg)
     lvgl_port_ctx.lvgl_events = xEventGroupCreate();
     ESP_GOTO_ON_FALSE(lvgl_port_ctx.lvgl_events, ESP_ERR_NO_MEM, err, TAG, "Create LVGL Event Group fail!");
 
-    BaseType_t res;
-    if (cfg->task_affinity < 0) {
-        res = xTaskCreate(lvgl_port_task, "taskLVGL", cfg->task_stack, xTaskGetCurrentTaskHandle(), cfg->task_priority, &lvgl_port_ctx.lvgl_task);
-    } else {
-        res = xTaskCreatePinnedToCore(lvgl_port_task, "taskLVGL", cfg->task_stack, xTaskGetCurrentTaskHandle(), cfg->task_priority, &lvgl_port_ctx.lvgl_task, cfg->task_affinity);
+    int task_stack_cap = MALLOC_CAP_DEFAULT | MALLOC_CAP_8BIT;
+    if (cfg->task_in_ext) {
+        task_stack_cap = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
     }
-    ESP_GOTO_ON_FALSE(res == pdPASS, ESP_FAIL, err, TAG, "Create LVGL task fail!");
+    lvgl_port_ctx.task_stack_buffer = (uint8_t *)heap_caps_malloc(cfg->task_stack, task_stack_cap);
+    ESP_GOTO_ON_FALSE(lvgl_port_ctx.task_stack_buffer, ESP_ERR_NO_MEM, err, TAG, "Create LVGL task stack fail!");
+
+    if (cfg->task_affinity < 0) {
+        lvgl_port_ctx.lvgl_task = xTaskCreateStatic(lvgl_port_task, "taskLVGL", cfg->task_stack, xTaskGetCurrentTaskHandle(), cfg->task_priority, lvgl_port_ctx.task_stack_buffer, &lvgl_port_ctx.task_stack);
+    } else {
+        lvgl_port_ctx.lvgl_task = xTaskCreateStaticPinnedToCore(lvgl_port_task, "taskLVGL", cfg->task_stack, xTaskGetCurrentTaskHandle(), cfg->task_priority, lvgl_port_ctx.task_stack_buffer, &lvgl_port_ctx.task_stack, cfg->task_affinity);
+    }
+    ESP_GOTO_ON_FALSE(lvgl_port_ctx.lvgl_task, ESP_FAIL, err, TAG, "Create LVGL task fail!");
 
     // Wait until taskLVGL starts
     if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(5000)) == 0) {
