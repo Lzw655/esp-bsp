@@ -85,7 +85,7 @@ esp_err_t lvgl_port_init(const lvgl_port_cfg_t *cfg)
     lvgl_port_ctx.lvgl_events = xEventGroupCreate();
     ESP_GOTO_ON_FALSE(lvgl_port_ctx.lvgl_events, ESP_ERR_NO_MEM, err, TAG, "Create LVGL Event Group fail!");
 
-    int task_stack_cap = MALLOC_CAP_DEFAULT | MALLOC_CAP_8BIT;
+    int task_stack_cap = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
     if (cfg->task_in_ext) {
         task_stack_cap = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
     }
