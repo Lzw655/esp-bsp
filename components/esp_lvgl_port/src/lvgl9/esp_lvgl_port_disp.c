@@ -73,6 +73,7 @@ typedef struct {
         unsigned int full_refresh: 1;   /* Always make the whole screen redrawn */
         unsigned int direct_mode: 1;    /* Use screen-sized buffers and draw to absolute coordinates */
         unsigned int sw_rotate: 1;    /* Use software rotation (slower) or PPA if available */
+        unsigned int dummy_draw: 1;   /* Use dummy draw to bypass the display driver */
     } flags;
 } lvgl_port_display_ctx_t;
 
@@ -346,6 +347,10 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
 
         disp_ctx->draw_buffs[0] = buf1;
         disp_ctx->draw_buffs[1] = buf2;
+
+        trans_sem = xSemaphoreCreateCounting(1, 1);
+        ESP_GOTO_ON_FALSE(trans_sem, ESP_ERR_NO_MEM, err, TAG, "Failed to create transport counting Semaphore");
+        disp_ctx->trans_sem = trans_sem;
     }
 
     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
@@ -466,6 +471,7 @@ static bool lvgl_port_flush_io_ready_callback(esp_lcd_panel_io_handle_t panel_io
     lv_display_t *disp_drv = (lv_display_t *)user_ctx;
     assert(disp_drv != NULL);
     lv_disp_flush_ready(disp_drv);
+    lvgl_port_give_trans_sem(disp_drv, true);
     return false;
 }
 
@@ -701,11 +707,12 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
             xSemaphoreTake(disp_ctx->trans_sem, 0);
             xSemaphoreTake(disp_ctx->trans_sem, portMAX_DELAY);
         }
-    } else {
+    } else if (!disp_ctx->flags.dummy_draw) {
+        lvgl_port_take_trans_sem(drv, portMAX_DELAY);
         esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
     }
 
-    if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB || (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI && (disp_ctx->flags.direct_mode || disp_ctx->flags.full_refresh))) {
+    if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB || (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI && (disp_ctx->flags.direct_mode || disp_ctx->flags.full_refresh)) || disp_ctx->flags.dummy_draw) {
         lv_disp_flush_ready(drv);
     }
 }
@@ -779,3 +786,41 @@ static void lvgl_port_display_rounder_callback(lv_event_t *e)
     area->y2 = (area->y2 & ~0x7U) + 7;
 }
 #endif
+
+esp_err_t lvgl_port_set_dummy_draw(lv_display_t *disp, bool enable)
+{
+    assert(disp != NULL);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
+    assert(disp_ctx != NULL);
+    disp_ctx->flags.dummy_draw = enable;
+    return ESP_OK;
+}
+
+esp_err_t lvgl_port_take_trans_sem(lv_display_t *disp, portBASE_TYPE xBlockTime)
+{
+    assert(disp != NULL);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
+    assert(disp_ctx != NULL);
+    return xSemaphoreTake(disp_ctx->trans_sem, xBlockTime);
+}
+
+esp_err_t lvgl_port_give_trans_sem(lv_display_t *disp, bool from_isr)
+{
+    assert(disp != NULL);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
+    assert(disp_ctx != NULL);
+    assert(disp_ctx->trans_sem != NULL);
+
+    BaseType_t need_yield = pdFALSE;
+    if (from_isr) {
+        xSemaphoreGiveFromISR(disp_ctx->trans_sem, &need_yield);
+    } else {
+        xSemaphoreGive(disp_ctx->trans_sem);
+    }
+
+    if (need_yield == pdTRUE) {
+        portYIELD_FROM_ISR();
+    }
+
+    return ESP_OK;
+}

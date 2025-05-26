@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -126,6 +126,12 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg, co
  *      - ESP_OK                    on success
  */
 esp_err_t lvgl_port_remove_disp(lv_display_t *disp);
+
+esp_err_t lvgl_port_set_dummy_draw(lv_display_t *disp, bool enable);
+
+esp_err_t lvgl_port_take_trans_sem(lv_display_t *disp, portBASE_TYPE xBlockTime);
+
+esp_err_t lvgl_port_give_trans_sem(lv_display_t *disp, bool from_isr);
 
 #ifdef __cplusplus
 }
