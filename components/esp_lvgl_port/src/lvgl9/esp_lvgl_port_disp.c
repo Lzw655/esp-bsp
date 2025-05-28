@@ -357,6 +357,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
 
     /* Set display color format */
     lv_display_set_color_format(disp, display_color_format);
+    lv_display_set_user_data(disp, disp_cfg->panel_handle);
 
     lv_display_add_event_cb(disp, lvgl_port_disp_size_update_callback, LV_EVENT_INVALIDATE_AREA, disp_ctx);
 
@@ -801,7 +802,7 @@ esp_err_t lvgl_port_take_trans_sem(lv_display_t *disp, portBASE_TYPE xBlockTime)
     assert(disp != NULL);
     lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
     assert(disp_ctx != NULL);
-    return xSemaphoreTake(disp_ctx->trans_sem, xBlockTime);
+    return (xSemaphoreTake(disp_ctx->trans_sem, xBlockTime) == pdTRUE ? ESP_OK : ESP_FAIL);
 }
 
 esp_err_t lvgl_port_give_trans_sem(lv_display_t *disp, bool from_isr)
